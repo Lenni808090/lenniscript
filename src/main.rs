@@ -2,12 +2,9 @@ mod ast;
 mod compiler;
 mod lexer;
 mod parser;
-mod runtime;
 
 use compiler::Compiler;
-use std::fs;
-use std::io::Write;
-use std::path::Path;
+use inkwell::context::Context;
 
 fn main() {
     let source = r#"
@@ -22,14 +19,14 @@ fn main() {
     let ast = parser.produceAst(source);
     println!("Parsed Code {:?}", &ast);
 
-    let mut compiler = Compiler::new();
-    match compiler.compile_and_run(&ast) {
-        Ok(output) => {
-            println!("Program output:\n{}", output);
-            println!("Compiled code has been saved to 'output.rs'");
-        }
-        Err(err) => {
-            eprintln!("Error running program: {}", err);
-        }
-    }
+    let context = Context::create();
+    let mut compiler = Compiler::new(&context);
+    compiler.compile_program(&ast);
+    
+    let llvm_ir = compiler.get_llvm_ir();
+    
+    println!("Generated LLVM IR:\n{}", llvm_ir);
+    
+    std::fs::write("output.ll", llvm_ir)
+        .expect("Failed to write LLVM IR to file");
 }

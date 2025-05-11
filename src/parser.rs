@@ -1,32 +1,42 @@
 use crate::ast;
 use crate::ast::Stmt::WhileStatement;
-use crate::ast::{ElseIfBranch, Expr, Stmt};
+use crate::ast::{ElseIfBranch, Expr, Property, Stmt};
+use crate::ast::Expr::Call;
 use crate::lexer;
 use crate::lexer::{tokenize, Token, TokenType};
+use crate::lexer::TokenType::{CloseBrace, CloseParen};
 
 pub struct Parser {
     tokens: Vec<Token>,
+    current: usize,
 }
 
 impl Parser {
     pub fn new() -> Self {
-        Self { tokens: Vec::new() }
-    }
-
-    fn not_eof(&self) -> bool {
-        if let Some(token) = self.tokens.first() {
-            token.token_type != TokenType::EoF
-        } else {
-            false
+        Self { 
+            tokens: Vec::new(),
+            current: 0,
         }
     }
 
+    fn not_eof(&self) -> bool {
+        if self.current >= self.tokens.len() {
+            return false;
+        }
+        self.tokens[self.current].token_type != TokenType::EoF
+    }
+
     fn at(&self) -> &Token {
-        self.tokens.first().expect("Keine Tokens verfügbar")
+        if self.current >= self.tokens.len() {
+            panic!("Keine Tokens verfügbar");
+        }
+        &self.tokens[self.current]
     }
 
     fn eat(&mut self) -> Token {
-        self.tokens.remove(0)
+        let token = self.tokens[self.current].clone();
+        self.current += 1;
+        token
     }
 
     fn expect(&mut self, expected: TokenType, err: &str) -> Token {
@@ -43,6 +53,8 @@ impl Parser {
 
     pub fn produceAst(&mut self, sourceCode: &str) -> Stmt {
         self.tokens = tokenize(sourceCode);
+        self.current = 0;
+        
         let mut body = Vec::new();
         while self.not_eof() {
             body.push(self.parse_stmt());
@@ -226,7 +238,7 @@ impl Parser {
     }
 
     fn parse_assignment_expr(&mut self) -> Expr {
-        let mut left = self.parse_comparison_expr();
+        let mut left = self.parse_object_expr();
 
         if (self.at().token_type == TokenType::Equals) {
             self.eat();
@@ -239,7 +251,139 @@ impl Parser {
 
         left
     }
+    
+    
+    
+    fn parse_object_expr(&mut self) -> Expr {
+        if self.at().token_type != TokenType::OpenBrace {
+            return self.parse_comparison_expr();
+        }
+        
+        self.eat(); // Consume the opening brace
+        let mut properties: Vec<Property> = Vec::new();
 
+        while self.at().token_type != TokenType::CloseBrace {
+            let key = self.expect(TokenType::Identifier, "Object literal key expected").value;
+            
+            if self.at().token_type == TokenType::Comma {
+                self.eat();
+                properties.push(Property { key, value: None });
+                continue;
+            }
+            else if self.at().token_type == TokenType::CloseBrace {
+                properties.push(Property { key, value: None });
+                continue;
+            }
+
+            self.expect(TokenType::Colon, "Expected colon after key name");
+            let value = self.parse_expr();
+            properties.push(Property { key, value: Some(value) });
+
+            if self.at().token_type != TokenType::CloseBrace {
+                self.expect(TokenType::Comma, "Expected comma or closing bracket following property");
+            }
+        }
+
+        self.expect(TokenType::CloseBrace, "Object Literal missing closing brace");
+        Expr::ObjectLiteral(properties)
+    }
+    
+    
+    
+    
+    fn parse_call_member_expr(&mut self) -> Expr {
+        let member = self.parse_member_expr();
+
+        if(self.at().token_type == TokenType::OpenParen) {
+            return self.parse_call_expr(member);
+        }
+
+        return member;
+    }
+
+
+    fn parse_call_expr(&mut self, caller: Expr) -> Expr {
+        let mut call_expr = Expr::Call {
+            caller: Box::new(caller),
+            args: self.parse_args(),
+        };
+
+        if self.at().token_type == TokenType::OpenParen {
+            call_expr = self.parse_call_expr(call_expr);
+        }
+
+        return call_expr;
+    }
+
+    fn parse_args(&mut self) -> Vec<Expr> {
+        self.expect(TokenType::OpenParen, "Expected open Parenthesis");
+
+
+        let args = if self.at().token_type == TokenType::CloseParen {
+            Vec::new()
+        } else {
+            self.parse_arguments_list()
+        };
+
+        // Consume the closing parenthesis
+        self.expect(TokenType::CloseParen, "Expected closing Parenthesis after arguments");
+
+        return args;
+    }
+
+    
+    
+    fn parse_arguments_list(&mut self) -> Vec<Expr> {
+        let mut args = vec![self.parse_assignment_expr()];
+
+        while self.at().token_type == TokenType::Comma {
+            self.eat(); 
+            args.push(self.parse_assignment_expr());
+        }
+
+        args
+    }
+
+
+    fn parse_member_expr(&mut self) -> Expr {
+        let mut object = self.parse_primary_expr();
+
+        while self.at().token_type == TokenType::Dot {
+            let property: Expr;
+            self.expect(TokenType::Dot, "Dot after Proprty/object");
+            property = self.parse_primary_expr();
+
+            if let Expr::Identifier(name) = property {
+                // It's an identifier, create a member expression
+                object = Expr::Member {
+                    object: Box::new(object),
+                    property: Box::new(Expr::Identifier(name)),
+                    computed: false,
+                };
+            } else {
+                panic!("Expected identifier after dot operator");
+            }
+        }
+
+        object
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     fn parse_comparison_expr(&mut self) -> Expr {
         let mut left = self.parse_additive_expr();
 
@@ -281,11 +425,11 @@ impl Parser {
     }
 
     fn parse_multiplicative_expr(&mut self) -> Expr {
-        let mut left = self.parse_primary_expr();
+        let mut left = self.parse_call_member_expr();
 
         while ["*", "/", "%"].contains(&self.at().value.as_str()) {
             let operator = self.eat().value;
-            let right = self.parse_primary_expr();
+            let right = self.parse_call_member_expr();
             left = Expr::Binary {
                 left: Box::new(left),
                 right: Box::new(right),

@@ -1,32 +1,37 @@
 mod ast;
-mod compiler;
 mod lexer;
 mod parser;
+mod compiler;
 
-use compiler::Compiler;
+mod native_function_impl;
+
 use inkwell::context::Context;
+use crate::compiler::Compiler;
 
 fn main() {
+    // Example with a print function call
     let source = r#"
-        let x = 2;
-        while(x < 2){
-            x = x + 1;
-            return x;
-        }
+        print(5 + 3 * 2);
+        print(10 - 4 / 2);
     "#;
 
     let mut parser = parser::Parser::new();
     let ast = parser.produceAst(source);
-    println!("Parsed Code {:?}", &ast);
+    println!("Parsed AST: {:?}", &ast);
 
     let context = Context::create();
     let mut compiler = Compiler::new(&context);
+    
+    // Compile the program
     compiler.compile_program(&ast);
     
+    // Get the LLVM IR
     let llvm_ir = compiler.get_llvm_ir();
     
     println!("Generated LLVM IR:\n{}", llvm_ir);
     
-    std::fs::write("output.ll", llvm_ir)
+    std::fs::write("output.ll", &llvm_ir)
         .expect("Failed to write LLVM IR to file");
+        
+    println!("LLVM IR written to output.ll");
 }

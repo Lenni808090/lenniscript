@@ -4,29 +4,42 @@ mod lexer;
 mod parser;
 
 use compiler::Compiler;
-use inkwell::context::Context;
+use std::fs::File;
+use std::io::Write;
 
 fn main() {
     let source = r#"
-        let x = 2;
-        while(x < 2){
-            x = x + 1;
-            return x;
+    let x = 5;
+    
+    
+     while(true) {
+        if(5 == 4) {
+            x = 3;
+        }else if(4 == 5){
+            x = 2;
+        }else {
+            x = 4;
         }
+     }   
     "#;
 
     let mut parser = parser::Parser::new();
     let ast = parser.produceAst(source);
     println!("Parsed Code {:?}", &ast);
 
-    let context = Context::create();
-    let mut compiler = Compiler::new(&context);
-    compiler.compile_program(&ast);
-    
-    let llvm_ir = compiler.get_llvm_ir();
-    
-    println!("Generated LLVM IR:\n{}", llvm_ir);
-    
-    std::fs::write("output.ll", llvm_ir)
-        .expect("Failed to write LLVM IR to file");
+    // Compiler initialisieren
+    let mut compiler = Compiler {
+        output: String::new(),
+    };
+
+    // AST kompilieren
+    let compiled_output = compiler.compile_programm(&ast);
+
+    // Ausgabe in eine Datei schreiben
+    let mut output_file = File::create("output.js").expect("Konnte Ausgabedatei nicht erstellen");
+    output_file
+        .write_all(compiled_output.as_bytes())
+        .expect("Konnte nicht in Ausgabedatei schreiben");
+
+    println!("Kompilierung abgeschlossen. Ausgabe wurde in 'output.txt' gespeichert.");
 }

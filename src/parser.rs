@@ -1,6 +1,6 @@
 use crate::ast;
 use crate::ast::Stmt::WhileStatement;
-use crate::ast::{ElseIfBranch, Expr, Stmt};
+use crate::ast::{ElseIfBranch, Expr, Property, Stmt};
 use crate::lexer;
 use crate::lexer::{tokenize, Token, TokenType};
 
@@ -36,7 +36,7 @@ impl Parser {
                 "Parser-Fehler: {}. Gefunden: {:?}, erwartet: {:?}",
                 err, token, expected
             );
-            panic!("Parsing abgebrochen");
+            panic!("Parsing abgebrochen {:?}", token);
         }
         token
     }
@@ -226,7 +226,7 @@ impl Parser {
     }
 
     fn parse_assignment_expr(&mut self) -> Expr {
-        let mut left = self.parse_comparison_expr();
+        let mut left = self.parse_object_expr();
 
         if (self.at().token_type == TokenType::Equals) {
             self.eat();
@@ -238,6 +238,53 @@ impl Parser {
         }
 
         left
+    }
+
+    fn parse_object_expr(&mut self) -> Expr {
+        if self.at().token_type != TokenType::OpenBrace {
+            return self.parse_comparison_expr();
+        }
+
+        self.eat();
+        let mut properties: Vec<Property> = Vec::new();
+
+        while (self.not_eof() && self.at().token_type != TokenType::CloseBrace) {
+            let key = self
+                .expect(TokenType::Identifier, "Object literal key expected")
+                .value;
+
+            if self.at().token_type == TokenType::Comma {
+                self.eat();
+                properties.push(Property { key, value: None });
+                continue;
+            } else if self.at().token_type == TokenType::CloseBrace {
+                properties.push(Property { key, value: None });
+                continue;
+            }
+
+            self.expect(
+                TokenType::Colon,
+                "Missing colon following identifier in ObjectExpr",
+            );
+            let value = self.parse_expr();
+
+            properties.push(Property {
+                key,
+                value: Some(value),
+            });
+            if self.at().token_type != TokenType::CloseBrace {
+                self.expect(
+                    TokenType::Comma,
+                    "Expected comma or closing bracket following property",
+                );
+            }
+        }
+
+        self.expect(
+            TokenType::CloseBrace,
+            "Object literal missing closing brace.",
+        );
+        Expr::ObjectLiteral(properties)
     }
 
     fn parse_comparison_expr(&mut self) -> Expr {
@@ -263,7 +310,6 @@ impl Parser {
 
         left
     }
-
     fn parse_additive_expr(&mut self) -> Expr {
         let mut left = self.parse_multiplicative_expr();
 

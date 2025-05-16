@@ -188,7 +188,7 @@ impl Parser {
     }
 
     fn parse_var_declaration(&mut self) -> Stmt {
-        self.eat(); // Konsumiere das 'let' oder 'const' Token
+        self.eat();
         let constant = self.at().token_type == TokenType::Const;
         let identifier = self
             .expect(
@@ -374,7 +374,6 @@ impl Parser {
                     object = Expr::Member {
                         object: Box::new(object),
                         property: Box::new(property),
-                        computed: false,
                     }
                 } else {
                     panic!("Cannonot use dot operator without right hand side being a identifier")
@@ -402,11 +401,11 @@ impl Parser {
     }
 
     fn parse_multiplicative_expr(&mut self) -> Expr {
-        let mut left = self.parse_primary_expr();
+        let mut left = self.parse_call_member_expr() ;
 
         while ["*", "/", "%"].contains(&self.at().value.as_str()) {
             let operator = self.eat().value;
-            let right = self.parse_primary_expr();
+            let right = self.parse_call_member_expr();
             left = Expr::Binary {
                 left: Box::new(left),
                 right: Box::new(right),

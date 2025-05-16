@@ -3,6 +3,7 @@ use std::fmt::format;
 
 pub struct Compiler {
     pub output: String,
+    pub indent_level: usize,
 }
 
 impl Compiler {
@@ -11,6 +12,7 @@ impl Compiler {
             for stmt in body {
                 let stmt = self.compile_stmt(&stmt);
                 self.output.push_str(&stmt);
+                self.output.push('\n');
             }
         }
 
@@ -51,8 +53,7 @@ impl Compiler {
                 self.compile_expr(value.as_ref().expect("Fehlender Initialisierungswert"));
             vardecl.push_str(&compiled_value);
 
-            vardecl.push_str(";");
-
+            vardecl.push(';');
             vardecl
         } else {
             panic!("expected var declaration")
@@ -63,7 +64,7 @@ impl Compiler {
         if let Stmt::ReturnStatement { value } = stmt {
             if let Some(expr) = value {
                 let compiled_expr = self.compile_expr(expr);
-                format!("return {};", compiled_expr)
+                format!("return {}", compiled_expr)
             } else {
                 "return;".to_string()
             }
@@ -84,35 +85,44 @@ impl Compiler {
             let compiled_condition: String = self.compile_expr(condition);
             compiled_if_stmt.push_str(&format!("if ({})", compiled_condition));
 
-            compiled_if_stmt.push_str(" {");
+            compiled_if_stmt.push_str(" {\n");
+            self.increase_indent();
 
             for stmt in then_branch {
                 let stmt = self.compile_stmt(stmt);
-                compiled_if_stmt.push_str(&stmt);
+                compiled_if_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
             }
 
-            compiled_if_stmt.push_str("}");
+            self.decrease_indent();
+            compiled_if_stmt.push_str(&format!("{}}}", self.get_indent()));
 
             if let Some(else_if_branches) = else_if_branches {
                 for else_if_branch in else_if_branches {
                     let compiled_else_if_cond = self.compile_expr(&else_if_branch.condition);
-                    compiled_if_stmt.push_str(&format!(" else if({}) ", compiled_else_if_cond));
-                    compiled_if_stmt.push_str("{");
+                    compiled_if_stmt.push_str(&format!(" else if({}) {{\n", compiled_else_if_cond));
+                    
+                    self.increase_indent();
                     for stmt in &else_if_branch.body {
                         let stmt = self.compile_stmt(&stmt);
-                        compiled_if_stmt.push_str(&stmt);
+                        compiled_if_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
                     }
-                    compiled_if_stmt.push_str("}");
+                    self.decrease_indent();
+                    
+                    compiled_if_stmt.push_str(&format!("{}}}", self.get_indent()));
                 }
             }
 
             if let Some(else_branch) = else_branch {
-                compiled_if_stmt.push_str(" else {");
+                compiled_if_stmt.push_str(&format!(" else {{\n"));
+                
+                self.increase_indent();
                 for stmt in else_branch {
                     let stmt = self.compile_stmt(&stmt);
-                    compiled_if_stmt.push_str(&stmt);
+                    compiled_if_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
                 }
-                compiled_if_stmt.push_str("}");
+                self.decrease_indent();
+                
+                compiled_if_stmt.push_str(&format!("{}}}", self.get_indent()));
             }
 
             compiled_if_stmt
@@ -125,13 +135,17 @@ impl Compiler {
         if let Stmt::WhileStatement { condition, body } = stmt {
             let mut compiled_while_stmt: String = String::new();
             let condition: String = self.compile_expr(&condition);
-            compiled_while_stmt.push_str(&format!("while ({})", condition));
-            compiled_while_stmt.push_str(" {");
+            compiled_while_stmt.push_str(&format!("{}while ({})", self.get_indent(), condition));
+            compiled_while_stmt.push_str(" {\n");
+            
+            self.increase_indent();
             for stmt in body {
                 let stmt = self.compile_stmt(&stmt);
-                compiled_while_stmt.push_str(&stmt);
+                compiled_while_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
             }
-            compiled_while_stmt.push_str("}");
+            self.decrease_indent();
+            
+            compiled_while_stmt.push_str(&format!("{}}}", self.get_indent()));
 
             compiled_while_stmt
         } else {
@@ -148,6 +162,8 @@ impl Compiler {
             Expr::Identifier(ident) => ident.clone(),
             Expr::Assignment { .. } => self.compile_assignment_expr(expr),
             Expr::ObjectLiteral(..) => self.compile_object_literal(expr),
+            Expr::Member { .. } => self.compile_member_expr(expr),
+            Expr::Call { .. } => self.compile_call_expr(expr),
             _ => {
                 panic!("expression not implemented");
             }
@@ -192,7 +208,7 @@ impl Compiler {
     fn compile_object_literal(&mut self, expr: &Expr) -> String {
         if let Expr::ObjectLiteral(properties) = expr {
             let mut compiled_object: String = String::new();
-            compiled_object.push_str("{");
+            compiled_object.push('{');
             for (i, property) in properties.iter().enumerate() {
                 if let Some(value) = &property.value {
                     let property_compiled = self.compile_expr(value);
@@ -205,10 +221,59 @@ impl Compiler {
                     compiled_object.push_str(", ");
                 }
             }
-            compiled_object.push_str("}");
+            compiled_object.push('}');
             compiled_object
         } else {
             panic!("Object literal erwartet")
+        }
+    }
+
+    fn compile_member_expr(&mut self, expr: &Expr) -> String {
+        if let Expr::Member { object, property } = expr {
+            let mut compiled_member: String = String::new();
+            let object_compiled = self.compile_expr(object);
+            let property_compiled = self.compile_expr(property);
+
+            compiled_member.push_str(&format!("{}.{}", object_compiled, property_compiled));
+            compiled_member
+        } else {
+            panic!("Expected Member Expression");
+        }
+    }
+
+    fn compile_call_expr(&mut self, expr: &Expr) -> String {
+        if let Expr::Call { caller, args } = expr {
+            let mut compiled_call: String = String::new();
+            let caller_compiled = self.compile_expr(caller);
+            compiled_call.push_str(&format!("{}(", caller_compiled));
+            for (i, arg) in args.iter().enumerate() {
+                let compiled_arg = self.compile_expr(arg);
+                compiled_call.push_str(&compiled_arg);
+
+                if i < args.len() - 1 {
+                    compiled_call.push_str(", ");
+                }
+            }
+
+            compiled_call.push(')');
+
+            compiled_call
+        } else {
+            panic!("Expected Call Expr")
+        }
+    }
+    
+    fn get_indent(&self) -> String {
+        "    ".repeat(self.indent_level)
+    }
+    
+    fn increase_indent(&mut self) {
+        self.indent_level += 1;
+    }
+    
+    fn decrease_indent(&mut self) {
+        if self.indent_level > 0 {
+            self.indent_level -= 1;
         }
     }
 }

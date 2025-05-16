@@ -14,16 +14,18 @@ fn main() {
         hi,
     };
     
-    
-     while(true) {
+    let i = 0; 
+     while(1 < 5) {
         if(5 == 4) {
-            x = 3;
+            x.foo = "3";
         }else if(4 == 5){
-            x = 2;
+            x.foo = "2";
         }else {
-            x = 4;
+            x.foo = "4";
         }
-     }   
+        i = i + 1;
+     }
+     console.log(x.foo);
     "#;
 
     let mut parser = parser::Parser::new();
@@ -33,6 +35,7 @@ fn main() {
     // Compiler initialisieren
     let mut compiler = Compiler {
         output: String::new(),
+        indent_level: 0,
     };
 
     // AST kompilieren
@@ -44,5 +47,5 @@ fn main() {
         .write_all(compiled_output.as_bytes())
         .expect("Konnte nicht in Ausgabedatei schreiben");
 
-    println!("Kompilierung abgeschlossen. Ausgabe wurde in 'output.txt' gespeichert.");
+    println!("Kompilierung abgeschlossen. Ausgabe wurde in 'output.js' gespeichert.");
 }

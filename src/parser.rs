@@ -310,6 +310,81 @@ impl Parser {
 
         left
     }
+
+    fn parse_call_member_expr(&mut self) -> Expr {
+        let member = self.parse_member_expr();
+
+        if self.at().token_type == TokenType::OpenParen {
+            return self.parse_call_expr(member);
+        }
+
+        member
+    }
+
+    fn parse_call_expr(&mut self, caller: Expr) -> Expr {
+        let mut call_expr = Expr::Call {
+            caller: Box::new(caller),
+            args: self.parse_args(),
+        };
+
+        if self.at().token_type == TokenType::OpenParen {
+            call_expr = self.parse_call_expr(call_expr);
+        }
+
+        call_expr
+    }
+
+    fn parse_args(&mut self) -> Vec<Expr> {
+        self.expect(TokenType::OpenParen, "Expected open parenthesis");
+        let args = if self.at().token_type == TokenType::CloseParen {
+            Vec::new()
+        } else {
+            self.parse_arguments_list()
+        };
+
+        self.expect(
+            TokenType::CloseParen,
+            "Missing closing parenthesis inside arguments list",
+        );
+
+        args
+    }
+
+    fn parse_arguments_list(&mut self) -> Vec<Expr> {
+        let mut args: Vec<Expr> = vec![self.parse_assignment_expr()];
+
+        while self.at().token_type == TokenType::Comma {
+            self.eat();
+            args.push(self.parse_assignment_expr());
+        }
+
+        args
+    }
+
+    fn parse_member_expr(&mut self) -> Expr {
+        let mut object = self.parse_primary_expr();
+
+        while self.at().token_type == TokenType::Dot {
+            let operator = self.eat();
+            let property: Expr;
+
+            if operator.token_type == TokenType::Dot {
+                property = self.parse_primary_expr();
+                if let Expr::Identifier(value) = &property {
+                    object = Expr::Member {
+                        object: Box::new(object),
+                        property: Box::new(property),
+                        computed: false,
+                    }
+                } else {
+                    panic!("Cannonot use dot operator without right hand side being a identifier")
+                }
+            }
+        }
+
+        object
+    }
+
     fn parse_additive_expr(&mut self) -> Expr {
         let mut left = self.parse_multiplicative_expr();
 

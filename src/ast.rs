@@ -31,6 +31,8 @@ pub enum Stmt {
 
 #[derive(Debug)]
 pub enum Expr {
+    BooleanLiteral(bool),
+
     Assignment {
         assignee: Box<Expr>,
         value: Box<Expr>,

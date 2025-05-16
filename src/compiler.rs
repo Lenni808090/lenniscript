@@ -1,4 +1,5 @@
 use crate::ast::{Expr, Stmt};
+use std::fmt::format;
 
 pub struct Compiler {
     pub output: String,
@@ -50,7 +51,7 @@ impl Compiler {
                 self.compile_expr(value.as_ref().expect("Fehlender Initialisierungswert"));
             vardecl.push_str(&compiled_value);
 
-            vardecl.push_str("; \n");
+            vardecl.push_str(";");
 
             vardecl
         } else {
@@ -83,39 +84,35 @@ impl Compiler {
             let compiled_condition: String = self.compile_expr(condition);
             compiled_if_stmt.push_str(&format!("if ({})", compiled_condition));
 
-            compiled_if_stmt.push_str("{\n");
+            compiled_if_stmt.push_str(" {");
 
             for stmt in then_branch {
                 let stmt = self.compile_stmt(stmt);
                 compiled_if_stmt.push_str(&stmt);
-                compiled_if_stmt.push_str(" \n");
             }
 
-            compiled_if_stmt.push_str("\n}");
+            compiled_if_stmt.push_str("}");
 
             if let Some(else_if_branches) = else_if_branches {
                 for else_if_branch in else_if_branches {
                     let compiled_else_if_cond = self.compile_expr(&else_if_branch.condition);
-                    compiled_if_stmt.push_str(&format!("\nelse if({}) ", compiled_else_if_cond));
-                    compiled_if_stmt.push_str("{\n");
+                    compiled_if_stmt.push_str(&format!(" else if({}) ", compiled_else_if_cond));
+                    compiled_if_stmt.push_str("{");
                     for stmt in &else_if_branch.body {
                         let stmt = self.compile_stmt(&stmt);
                         compiled_if_stmt.push_str(&stmt);
-                        compiled_if_stmt.push_str(" \n");
                     }
-                    compiled_if_stmt.push_str("\n}");
+                    compiled_if_stmt.push_str("}");
                 }
             }
 
             if let Some(else_branch) = else_branch {
-                compiled_if_stmt.push_str("\nelse {");
-                compiled_if_stmt.push_str("\n");
+                compiled_if_stmt.push_str(" else {");
                 for stmt in else_branch {
                     let stmt = self.compile_stmt(&stmt);
                     compiled_if_stmt.push_str(&stmt);
-                    compiled_if_stmt.push_str(" \n");
                 }
-                compiled_if_stmt.push_str("\n}");
+                compiled_if_stmt.push_str("}");
             }
 
             compiled_if_stmt
@@ -128,14 +125,13 @@ impl Compiler {
         if let Stmt::WhileStatement { condition, body } = stmt {
             let mut compiled_while_stmt: String = String::new();
             let condition: String = self.compile_expr(&condition);
-            compiled_while_stmt.push_str(&format!("while({})", condition));
-            compiled_while_stmt.push_str("{ \n");
+            compiled_while_stmt.push_str(&format!("while ({})", condition));
+            compiled_while_stmt.push_str(" {");
             for stmt in body {
                 let stmt = self.compile_stmt(&stmt);
                 compiled_while_stmt.push_str(&stmt);
-                compiled_while_stmt.push_str(" \n");
             }
-            compiled_while_stmt.push_str("} \n");
+            compiled_while_stmt.push_str("}");
 
             compiled_while_stmt
         } else {
@@ -147,9 +143,11 @@ impl Compiler {
         match expr {
             Expr::Binary { .. } => self.compile_binary_expr(expr),
             Expr::NumericLiteral(val) => val.to_string(),
+            Expr::BooleanLiteral(bool) => bool.to_string(),
             Expr::StringLiteral(string_literal) => format!("\"{}\"", string_literal),
             Expr::Identifier(ident) => ident.clone(),
             Expr::Assignment { .. } => self.compile_assignment_expr(expr),
+            Expr::ObjectLiteral(..) => self.compile_object_literal(expr),
             _ => {
                 panic!("expression not implemented");
             }
@@ -183,11 +181,34 @@ impl Compiler {
             let assigne = self.compile_expr(assignee);
             let value = self.compile_expr(value);
 
-            compiled_assignment.push_str(&format!("{} = {}; \n", assigne, value));
+            compiled_assignment.push_str(&format!("{} = {};", assigne, value));
 
             compiled_assignment
         } else {
             panic!("Expected Assignment Expresseion");
+        }
+    }
+
+    fn compile_object_literal(&mut self, expr: &Expr) -> String {
+        if let Expr::ObjectLiteral(properties) = expr {
+            let mut compiled_object: String = String::new();
+            compiled_object.push_str("{");
+            for (i, property) in properties.iter().enumerate() {
+                if let Some(value) = &property.value {
+                    let property_compiled = self.compile_expr(value);
+                    compiled_object.push_str(&format!("{}: {}", property.key, property_compiled));
+                } else {
+                    compiled_object.push_str(&format!("{}: null", property.key));
+                }
+
+                if i < properties.len() - 1 {
+                    compiled_object.push_str(", ");
+                }
+            }
+            compiled_object.push_str("}");
+            compiled_object
+        } else {
+            panic!("Object literal erwartet")
         }
     }
 }

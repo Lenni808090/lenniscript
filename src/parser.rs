@@ -426,6 +426,14 @@ impl Parser {
                 let value = token.value.parse::<f64>().unwrap();
                 Expr::NumericLiteral(value)
             }
+            TokenType::True => {
+                let token = self.eat();
+                Expr::BooleanLiteral(true)
+            }
+            TokenType::False => {
+                let token = self.eat();
+                Expr::BooleanLiteral(false)
+            }
             TokenType::Identifier => {
                 let token = self.eat();
                 let name = token.value;

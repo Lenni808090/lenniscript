@@ -9,7 +9,10 @@ use std::io::Write;
 
 fn main() {
     let source = r#"
-    let x = 5;
+    let x = {
+        foo: "bar",
+        hi,
+    };
     
     
      while(true) {

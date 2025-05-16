@@ -1,4 +1,5 @@
-use std::string::String;
+use std::str::Chars;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenType {
     _Number,
@@ -41,6 +42,7 @@ pub enum TokenType {
 
     Return,
 }
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokenType,
@@ -51,170 +53,208 @@ impl Token {
     pub fn new(token_type: TokenType, value: String) -> Self {
         Self { token_type, value }
     }
+    
+    // This creates tokens for single characters without allocating a new String
+    pub fn new_single_char(token_type: TokenType, c: char) -> Self {
+        let mut s = String::with_capacity(1);
+        s.push(c);
+        Self { token_type, value: s }
+    }
+    
+    // This creates tokens for keywords and other predefined values
+    pub fn new_static(token_type: TokenType, value: &'static str) -> Self {
+        Self { token_type, value: value.to_string() }
+    }
 }
 
-fn isalpha(c: char) -> bool {
-    c.is_alphabetic()
+// Using a struct with iterator instead of nested match statements
+pub struct Lexer<'a> {
+    chars: std::iter::Peekable<Chars<'a>>,
+    tokens: Vec<Token>,
 }
 
-fn isnum(n: char) -> bool {
-    n.is_numeric()
-}
-
-fn isskippable(w: char) -> bool {
-    w.is_whitespace()
-}
-
-pub fn tokenize(source_code: &str) -> Vec<Token> {
-    let mut tokens = Vec::new();
-    let mut chars = source_code.chars().peekable();
-
-    while let Some(&c) = chars.peek() {
-        match c {
-            '(' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::OpenParen, "(".to_string()));
-            }
-            ')' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::CloseParen, ")".to_string()));
-            }
-            '{' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::OpenBrace, "{".to_string()));
-            }
-            '}' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::CloseBrace, "}".to_string()));
-            }
-            '[' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::OpenBracket, "[".to_string()));
-            }
-            ']' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::CloseBracket, "]".to_string()));
-            }
-            '+' | '-' | '/' | '*' | '%' => {
-                let op = chars.next().unwrap();
-                tokens.push(Token::new(TokenType::BinaryOperator, op.to_string()));
-            }
-            '=' => {
-                chars.next();
-                if let Some(&'=') = chars.peek() {
-                    chars.next();
-                    tokens.push(Token::new(TokenType::EqualsEquals, "==".to_string()));
-                } else {
-                    tokens.push(Token::new(TokenType::Equals, "=".to_string()));
+impl<'a> Lexer<'a> {
+    pub fn new(source: &'a str) -> Self {
+        Self {
+            chars: source.chars().peekable(),
+            tokens: Vec::new(),
+        }
+    }
+    
+    pub fn tokenize(mut self) -> Vec<Token> {
+        while let Some(&c) = self.chars.peek() {
+            match c {
+                '(' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::OpenParen, "("));
                 }
-            }
-            '!' => {
-                chars.next();
-                if let Some(&'=') = chars.peek() {
-                    chars.next();
-                    tokens.push(Token::new(TokenType::NotEquals, "!=".to_string()))
-                } else {
-                    panic!("Unbekantes Zeichen: '!' ")
+                ')' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::CloseParen, ")"));
                 }
-            }
-            '<' => {
-                chars.next();
-                if let Some(&'=') = chars.peek() {
-                    chars.next();
-                    tokens.push(Token::new(TokenType::LessThenEquals, "<=".to_string()));
-                } else {
-                    tokens.push(Token::new(TokenType::LessThen, "<".to_string()));
+                '{' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::OpenBrace, "{"));
                 }
-            }
-            '>' => {
-                chars.next();
-                if let Some(&'=') = chars.peek() {
-                    chars.next();
-                    tokens.push(Token::new(TokenType::GreaterThenEquals, ">=".to_string()));
-                } else {
-                    tokens.push(Token::new(TokenType::GreaterThen, ">".to_string()));
+                '}' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::CloseBrace, "}"));
                 }
-            }
-            '"' => {
-                chars.next();
-                let mut string_literal = String::new();
-                while let Some(&ch) = chars.peek() {
-                    if ch == '"' {
-                        break;
+                '[' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::OpenBracket, "["));
+                }
+                ']' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::CloseBracket, "]"));
+                }
+                '+' | '-' | '/' | '*' | '%' => {
+                    let op = self.chars.next().unwrap();
+                    self.tokens.push(Token::new_single_char(TokenType::BinaryOperator, op));
+                }
+                '=' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens.push(Token::new_static(TokenType::EqualsEquals, "=="));
+                    } else {
+                        self.tokens.push(Token::new_static(TokenType::Equals, "="));
                     }
-                    string_literal.push(ch);
-                    chars.next();
                 }
-                if chars.next() != Some('"') {
-                    panic!("Unbeendeter String-Literal");
+                '!' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens.push(Token::new_static(TokenType::NotEquals, "!="));
+                    } else {
+                        panic!("Unbekanntes Zeichen: '!' ")
+                    }
                 }
-                tokens.push(Token::new(TokenType::_String, string_literal));
-            }
-            ';' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::Semicolon, ";".to_string()));
-            }
-            '.' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::Dot, ".".to_string()));
-            }
-            ',' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::Comma, ",".to_string()));
-            }
-            ':' => {
-                chars.next();
-                tokens.push(Token::new(TokenType::Colon, ":".to_string()));
-            }
-            _ => {
-                if isnum(c) {
-                    let mut number = String::new();
-                    let mut has_dot: bool = false;
-                    while let Some(&ch) = chars.peek() {
-                        if isnum(ch) {
-                            number.push(ch);
-                            chars.next();
-                        } else if ch == '.' && !has_dot {
-                            has_dot = true;
-                            number.push(ch);
-                            chars.next();
-                        } else {
-                            break;
-                        }
+                '<' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens.push(Token::new_static(TokenType::LessThenEquals, "<="));
+                    } else {
+                        self.tokens.push(Token::new_static(TokenType::LessThen, "<"));
                     }
-                    if number.ends_with('.') {
-                        panic!("Ungültiger Float-Wert: {}", number);
+                }
+                '>' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens.push(Token::new_static(TokenType::GreaterThenEquals, ">="));
+                    } else {
+                        self.tokens.push(Token::new_static(TokenType::GreaterThen, ">"));
                     }
-                    tokens.push(Token::new(TokenType::_Number, number));
-                } else if isalpha(c) {
-                    let mut identifier = String::new();
-                    while let Some(&ch) = chars.peek() {
-                        if isalpha(ch) || isnum(ch) {
-                            identifier.push(ch);
-                            chars.next();
-                        } else {
-                            break;
-                        }
+                }
+                '"' => self.tokenize_string(),
+                ';' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::Semicolon, ";"));
+                }
+                '.' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::Dot, "."));
+                }
+                ',' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::Comma, ","));
+                }
+                ':' => {
+                    self.chars.next();
+                    self.tokens.push(Token::new_static(TokenType::Colon, ":"));
+                }
+                _ => {
+                    if c.is_ascii_digit() {
+                        self.tokenize_number();
+                    } else if c.is_alphabetic() {
+                        self.tokenize_identifier();
+                    } else if c.is_whitespace() {
+                        self.chars.next();
+                    } else {
+                        self.chars.next(); // Skip unknown characters
                     }
-
-                    let token_type = match identifier.as_str() {
-                        "let" => TokenType::Let,
-                        "return" => TokenType::Return,
-                        "const" => TokenType::Const,
-                        "while" => TokenType::While,
-                        "if" => TokenType::If,
-                        "else" => TokenType::Else,
-                        "fn" => TokenType::Fn,
-                        _ => TokenType::Identifier,
-                    };
-
-                    tokens.push(Token::new(token_type, identifier));
-                } else if isskippable(c) {
-                    chars.next();
                 }
             }
         }
+        
+        self.tokens.push(Token::new_static(TokenType::EoF, "EndOfFile"));
+        self.tokens
     }
-    tokens.push(Token::new(TokenType::EoF, "EndOfFile".to_string()));
-    tokens
+    
+    fn tokenize_string(&mut self) {
+        self.chars.next(); // Skip the opening quote
+        let mut string_literal = String::new();
+        
+        while let Some(&ch) = self.chars.peek() {
+            if ch == '"' {
+                break;
+            }
+            string_literal.push(ch);
+            self.chars.next();
+        }
+        
+        if self.chars.next() != Some('"') {
+            panic!("Unbeendeter String-Literal");
+        }
+        
+        self.tokens.push(Token::new(TokenType::_String, string_literal));
+    }
+    
+    fn tokenize_number(&mut self) {
+        let mut number = String::new();
+        let mut has_dot = false;
+        
+        while let Some(&ch) = self.chars.peek() {
+            if ch.is_ascii_digit() {
+                number.push(ch);
+                self.chars.next();
+            } else if ch == '.' && !has_dot {
+                has_dot = true;
+                number.push(ch);
+                self.chars.next();
+            } else {
+                break;
+            }
+        }
+        
+        if number.ends_with('.') {
+            panic!("Ungültiger Float-Wert: {}", number);
+        }
+        
+        self.tokens.push(Token::new(TokenType::_Number, number));
+    }
+    
+    fn tokenize_identifier(&mut self) {
+        let mut identifier = String::new();
+        
+        while let Some(&ch) = self.chars.peek() {
+            if ch.is_alphabetic() || ch.is_ascii_digit() {
+                identifier.push(ch);
+                self.chars.next();
+            } else {
+                break;
+            }
+        }
+        
+        // Use a match for keywords instead of repeated comparisons
+        let token_type = match identifier.as_str() {
+            "let" => TokenType::Let,
+            "return" => TokenType::Return,
+            "const" => TokenType::Const,
+            "while" => TokenType::While,
+            "if" => TokenType::If,
+            "else" => TokenType::Else,
+            "fn" => TokenType::Fn,
+            _ => TokenType::Identifier,
+        };
+        
+        self.tokens.push(Token::new(token_type, identifier));
+    }
+}
+
+// Keep the original function signature for compatibility
+pub fn tokenize(source_code: &str) -> Vec<Token> {
+    Lexer::new(source_code).tokenize()
 }

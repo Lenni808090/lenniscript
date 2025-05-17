@@ -3,49 +3,47 @@ mod compiler;
 mod lexer;
 mod parser;
 
+mod typechecker;
 use compiler::Compiler;
 use std::fs::File;
 use std::io::Write;
 
 fn main() {
     let source = r#"
-    let x = {
-        foo: "bar",
-    };
-    
-    fn testfn(i){ 
-         while(i < 5) {
-            if(i == 4) {
-                x.foo = ["3", "bar"];
-            }else if(i == 5){
-                x.foo = ["3", "apple"];
-            }else {
-                x.foo = ["3", "grr"];
-            }
-            i = i + 1;
-         }
-    }
-    console.log(x.foo[1]);
+        fn test(num1: num, num2: num){
+            let res: num = num1 + num2;
+            return res;
+        }
+        let x = [1,2];
+        x[1] = "32";
     "#;
 
     let mut parser = parser::Parser::new();
     let ast = parser.produceAst(source);
-    println!("Parsed Code {:?}", &ast);
 
-    // Compiler initialisieren
-    let mut compiler = Compiler {
-        output: String::new(),
-        indent_level: 0,
-    };
+    // Add type checking before compilation
+    let mut type_checker = typechecker::TypeChecker::new();
+    match type_checker.check_program(&ast) {
+        Ok(_) => {
+            let mut compiler = Compiler::new();
 
-    // AST kompilieren
-    let compiled_output = compiler.compile_programm(&ast);
-
-    // Ausgabe in eine Datei schreiben
-    let mut output_file = File::create("output.js").expect("Konnte Ausgabedatei nicht erstellen");
-    output_file
-        .write_all(compiled_output.as_bytes())
-        .expect("Konnte nicht in Ausgabedatei schreiben");
-
-    println!("Kompilierung abgeschlossen. Ausgabe wurde in 'output.js' gespeichert.");
+            match compiler.compile_programm(&ast) {
+                Ok(compiled_output) => {
+                    println!("{:?}", ast);
+                    let mut output_file =
+                        File::create("output.js").expect("Konnte Ausgabedatei nicht erstellen");
+                    output_file
+                        .write_all(compiled_output.as_bytes())
+                        .expect("Konnte nicht in Ausgabedatei schreiben");
+                    println!("Kompilierung erfolgreich abgeschlossen.");
+                }
+                Err(error) => {
+                    eprintln!("Type Error: {:?}", error);
+                }
+            }
+        }
+        Err(error) => {
+            eprintln!("Fehler beim Kompilieren: {:?}", error);
+        }
+    }
 }

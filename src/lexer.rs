@@ -5,6 +5,7 @@ pub enum TokenType {
     _Number,
     _String,
     Identifier,
+    TypeAnnotation,
 
     Let,
     Const,
@@ -273,6 +274,8 @@ impl<'a> Lexer<'a> {
             "fn" => TokenType::Fn,
             "true" => TokenType::True,
             "false" => TokenType::False,
+            "string" => TokenType::TypeAnnotation,
+            "num" => TokenType::TypeAnnotation,
             _ => TokenType::Identifier,
         };
 

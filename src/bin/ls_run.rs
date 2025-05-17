@@ -3,6 +3,7 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use lenniscript::compiler::Compiler;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -44,10 +45,7 @@ fn main() {
     println!("Geparster Code: {:?}", &ast);
 
     // Compiler initialisieren
-    let mut compiler = lenniscript::compiler::Compiler {
-        output: String::new(),
-        indent_level: 0,
-    };
+    let mut compiler = Compiler::new();
 
     // AST kompilieren
     let compiled_output = compiler.compile_programm(&ast);

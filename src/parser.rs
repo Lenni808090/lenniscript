@@ -1,8 +1,23 @@
 use crate::ast;
 use crate::ast::Stmt::WhileStatement;
-use crate::ast::{ElseIfBranch, Expr, Property, Stmt};
+use crate::ast::{ElseIfBranch, Expr, Property, Stmt, Type};
 use crate::lexer;
 use crate::lexer::{tokenize, Token, TokenType};
+use std::str::FromStr;
+
+impl FromStr for Type {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "num" => Ok(Type::Number),
+            "string" => Ok(Type::String),
+            "bool" => Ok(Type::Boolean),
+            "any" => Ok(Type::Any),
+            _ => Err(format!("Unbekannter Typ: {}", s)),
+        }
+    }
+}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -41,8 +56,8 @@ impl Parser {
         token
     }
 
-    pub fn produceAst(&mut self, sourceCode: &str) -> Stmt {
-        self.tokens = tokenize(sourceCode);
+    pub fn produceAst(&mut self, source_code: &str) -> Stmt {
+        self.tokens = tokenize(source_code);
         let mut body = Vec::new();
         while self.not_eof() {
             body.push(self.parse_stmt());
@@ -209,10 +224,21 @@ impl Parser {
             return Stmt::VarDeclaration {
                 constant,
                 identifier,
+                var_type: Type::Any,
                 value: None,
             };
         }
-
+        let mut var_type = Type::Any;
+        if self.at().token_type == TokenType::Colon {
+            self.eat();
+            let _type_str = self
+                .expect(TokenType::TypeAnnotation, "Type annotation expected")
+                .value
+                .to_string();
+            var_type = _type_str
+                .parse::<Type>()
+                .unwrap_or_else(|err| panic!("{}", err));
+        }
         self.expect(TokenType::Equals, "Erwartete '=' nach Bezeichner");
         let value = self.parse_expr();
         self.expect(
@@ -223,6 +249,7 @@ impl Parser {
         Stmt::VarDeclaration {
             constant,
             identifier,
+            var_type,
             value: Some(value),
         }
     }
@@ -230,13 +257,16 @@ impl Parser {
     fn parse_fn_declaration(&mut self) -> Stmt {
         self.eat();
 
-        let name = self.expect(TokenType::Identifier, "name expected after fn keyword").value;
+        let name = self
+            .expect(TokenType::Identifier, "name expected after fn keyword")
+            .value;
 
-        let args = self.parse_args();
+        let (args, arg_types) = self.parse_args();
         let mut params: Vec<String> = Vec::new();
+
         for arg in args {
             if let Expr::Identifier(symbol) = arg {
-                params.push(symbol)
+                params.push(symbol);
             } else {
                 println!("{:?}", arg);
                 panic!("Inside function declaration expected parameters to be of type string.");
@@ -262,6 +292,7 @@ impl Parser {
             name,
             body,
             parameters: params,
+            param_types: arg_types,
         }
     }
 
@@ -362,9 +393,10 @@ impl Parser {
     }
 
     fn parse_call_expr(&mut self, caller: Expr) -> Expr {
+        let (args, _) = self.parse_args();
         let mut call_expr = Expr::Call {
             caller: Box::new(caller),
-            args: self.parse_args(),
+            args,
         };
 
         if self.at().token_type == TokenType::OpenParen {
@@ -374,10 +406,10 @@ impl Parser {
         call_expr
     }
 
-    fn parse_args(&mut self) -> Vec<Expr> {
+    fn parse_args(&mut self) -> (Vec<Expr>, Vec<Type>) {
         self.expect(TokenType::OpenParen, "Expected open parenthesis");
-        let args = if self.at().token_type == TokenType::CloseParen {
-            Vec::new()
+        let result = if self.at().token_type == TokenType::CloseParen {
+            (Vec::new(), Vec::new())
         } else {
             self.parse_arguments_list()
         };
@@ -387,18 +419,44 @@ impl Parser {
             "Missing closing parenthesis inside arguments list",
         );
 
-        args
+        result
     }
 
-    fn parse_arguments_list(&mut self) -> Vec<Expr> {
+    fn parse_arguments_list(&mut self) -> (Vec<Expr>, Vec<Type>) {
         let mut args: Vec<Expr> = vec![self.parse_assignment_expr()];
+        let mut args_types: Vec<Type> = vec![Type::Any];
+
+        if self.at().token_type == TokenType::Colon {
+            self.eat();
+            let type_str = self
+                .expect(TokenType::TypeAnnotation, "Type annotation expected")
+                .value;
+            let param_type = type_str
+                .parse::<Type>()
+                .unwrap_or_else(|err| panic!("{}", err));
+
+            args_types[0] = param_type;
+        }
 
         while self.at().token_type == TokenType::Comma {
             self.eat();
             args.push(self.parse_assignment_expr());
+            if self.at().token_type == TokenType::Colon {
+                self.eat();
+                let type_str = self
+                    .expect(TokenType::TypeAnnotation, "Type annotation expected")
+                    .value;
+                let param_type = type_str
+                    .parse::<Type>()
+                    .unwrap_or_else(|err| panic!("{}", err));
+
+                args_types.push(param_type);
+            } else {
+                args_types.push(Type::Any);
+            }
         }
 
-        args
+        (args, args_types)
     }
 
     fn parse_member_expr(&mut self) -> Expr {

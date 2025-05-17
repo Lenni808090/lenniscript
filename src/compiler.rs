@@ -1,5 +1,5 @@
 use crate::ast::{Expr, Stmt};
-use std::fmt::format;
+use crate::typechecker::TypeChecker;
 
 pub struct Compiler {
     pub output: String,
@@ -7,16 +7,23 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile_programm(&mut self, program: &Stmt) -> String {
+    pub fn new() -> Self {
+        Compiler {
+            output: String::new(),
+            indent_level: 0,
+        }
+    }
+
+    pub fn compile_programm(&mut self, program: &Stmt) -> Result<String, String> {
         if let Stmt::Program { body } = program {
             for stmt in body {
-                let stmt = self.compile_stmt(&stmt);
+                let stmt = self.compile_stmt(stmt);
                 self.output.push_str(&stmt);
                 self.output.push('\n');
             }
         }
 
-        self.output.clone()
+        Ok(self.output.clone())
     }
 
     fn compile_stmt(&mut self, stmt: &Stmt) -> String {
@@ -38,6 +45,7 @@ impl Compiler {
             constant,
             identifier,
             value,
+            var_type,
         } = stmt
         {
             let mut vardecl = String::new();
@@ -154,12 +162,12 @@ impl Compiler {
         }
     }
 
-
     fn compile_fun_declaration(&mut self, stmt: &Stmt) -> String {
         if let Stmt::FunctionDeclaration {
             name,
             parameters,
             body,
+            ..
         } = stmt
         {
             let mut compiled_function: String = String::new();

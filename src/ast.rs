@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub enum Stmt {
     Program {
@@ -7,10 +9,12 @@ pub enum Stmt {
         constant: bool,
         identifier: String,
         value: Option<Expr>,
+        var_type: Type,
     },
     FunctionDeclaration {
         name: String,
         parameters: Vec<String>,
+        param_types: Vec<Type>,
         body: Vec<Stmt>,
     },
     Expression(Expr),
@@ -57,7 +61,15 @@ pub enum Expr {
     ArrayLiteral(Vec<Expr>),
     ObjectLiteral(Vec<Property>),
 }
-
+#[derive(Debug, Clone, PartialEq)]
+pub enum Type {
+    Number,
+    String,
+    Boolean,
+    Array(Box<Type>),
+    Object(HashMap<String, Type>),
+    Any,
+}
 #[derive(Debug)]
 pub struct ElseIfBranch {
     pub condition: Expr,

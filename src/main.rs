@@ -20,16 +20,14 @@ fn main() {
 
     let mut parser = parser::Parser::new();
     let ast = parser.produceAst(source);
-
+    println!("{:?}", &ast);
     // Add type checking before compilation
     let mut type_checker = typechecker::TypeChecker::new();
     match type_checker.check_program(&ast) {
         Ok(_) => {
             let mut compiler = Compiler::new();
-
             match compiler.compile_programm(&ast) {
                 Ok(compiled_output) => {
-                    println!("{:?}", ast);
                     let mut output_file =
                         File::create("output.js").expect("Konnte Ausgabedatei nicht erstellen");
                     output_file

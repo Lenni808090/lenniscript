@@ -326,7 +326,7 @@ impl TypeChecker {
                             ),
                         });
                     }
-                }    
+                }
             } else {
                 let target_type = self.infer_type(assignee)?;
                 let value_type = self.infer_type(value)?;

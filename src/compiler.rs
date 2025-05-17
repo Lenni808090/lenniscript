@@ -100,28 +100,28 @@ impl Compiler {
                 for else_if_branch in else_if_branches {
                     let compiled_else_if_cond = self.compile_expr(&else_if_branch.condition);
                     compiled_if_stmt.push_str(&format!(" else if({}) {{\n", compiled_else_if_cond));
-                    
+
                     self.increase_indent();
                     for stmt in &else_if_branch.body {
                         let stmt = self.compile_stmt(&stmt);
                         compiled_if_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
                     }
                     self.decrease_indent();
-                    
+
                     compiled_if_stmt.push_str(&format!("{}}}", self.get_indent()));
                 }
             }
 
             if let Some(else_branch) = else_branch {
                 compiled_if_stmt.push_str(&format!(" else {{\n"));
-                
+
                 self.increase_indent();
                 for stmt in else_branch {
                     let stmt = self.compile_stmt(&stmt);
                     compiled_if_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
                 }
                 self.decrease_indent();
-                
+
                 compiled_if_stmt.push_str(&format!("{}}}", self.get_indent()));
             }
 
@@ -137,14 +137,14 @@ impl Compiler {
             let condition: String = self.compile_expr(&condition);
             compiled_while_stmt.push_str(&format!("{}while ({})", self.get_indent(), condition));
             compiled_while_stmt.push_str(" {\n");
-            
+
             self.increase_indent();
             for stmt in body {
                 let stmt = self.compile_stmt(&stmt);
                 compiled_while_stmt.push_str(&format!("{}{}\n", self.get_indent(), stmt));
             }
             self.decrease_indent();
-            
+
             compiled_while_stmt.push_str(&format!("{}}}", self.get_indent()));
 
             compiled_while_stmt
@@ -159,13 +159,14 @@ impl Compiler {
             Expr::NumericLiteral(val) => val.to_string(),
             Expr::BooleanLiteral(bool) => bool.to_string(),
             Expr::StringLiteral(string_literal) => format!("\"{}\"", string_literal),
+            Expr::ArrayLiteral { .. } => self.compile_array_literal(expr),
             Expr::Identifier(ident) => ident.clone(),
             Expr::Assignment { .. } => self.compile_assignment_expr(expr),
             Expr::ObjectLiteral(..) => self.compile_object_literal(expr),
             Expr::Member { .. } => self.compile_member_expr(expr),
             Expr::Call { .. } => self.compile_call_expr(expr),
             _ => {
-                panic!("expression not implemented");
+                panic!("expression not implemented {:?}", expr);
             }
         }
     }
@@ -188,6 +189,21 @@ impl Compiler {
             format!("({} {} {})", left_value, op, right_value)
         } else {
             panic!("expected binary expression")
+        }
+    }
+
+    fn compile_array_literal(&mut self, expr: &Expr) -> String {
+        if let Expr::ArrayLiteral(values) = expr {
+            let mut compiled_array: String = String::new();
+            compiled_array.push('[');
+            for expr in values {
+                let expr = self.compile_expr(expr);
+                compiled_array.push_str(&format!("{}, ", expr));
+            }
+            compiled_array.push(']');
+            compiled_array
+        } else {
+            panic!("array literal expected")
         }
     }
 
@@ -229,12 +245,20 @@ impl Compiler {
     }
 
     fn compile_member_expr(&mut self, expr: &Expr) -> String {
-        if let Expr::Member { object, property } = expr {
+        if let Expr::Member {
+            object,
+            property,
+            computed,
+        } = expr
+        {
             let mut compiled_member: String = String::new();
             let object_compiled = self.compile_expr(object);
             let property_compiled = self.compile_expr(property);
-
-            compiled_member.push_str(&format!("{}.{}", object_compiled, property_compiled));
+            if *computed {
+                compiled_member.push_str(&format!("{}[{}]", object_compiled, property_compiled));
+            } else {
+                compiled_member.push_str(&format!("{}.{}", object_compiled, property_compiled));
+            }
             compiled_member
         } else {
             panic!("Expected Member Expression");
@@ -262,15 +286,15 @@ impl Compiler {
             panic!("Expected Call Expr")
         }
     }
-    
+
     fn get_indent(&self) -> String {
         "    ".repeat(self.indent_level)
     }
-    
+
     fn increase_indent(&mut self) {
         self.indent_level += 1;
     }
-    
+
     fn decrease_indent(&mut self) {
         if self.indent_level > 0 {
             self.indent_level -= 1;

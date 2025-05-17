@@ -46,6 +46,7 @@ fn main() {
     // Compiler initialisieren
     let mut compiler = rust_rewritr_programming_language::compiler::Compiler {
         output: String::new(),
+        indent_level: 0,
     };
 
     // AST kompilieren

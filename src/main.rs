@@ -15,9 +15,9 @@ fn main() {
     };
     
     let i = 0; 
-     while(1 < 5) {
+     while(i < 5) {
         if(5 == 4) {
-            x.foo = "3";
+            x.foo = ["3", "bar"];
         }else if(4 == 5){
             x.foo = "2";
         }else {
@@ -25,7 +25,7 @@ fn main() {
         }
         i = i + 1;
      }
-     console.log(x.foo);
+     console.log(x.foo[1]);
     "#;
 
     let mut parser = parser::Parser::new();

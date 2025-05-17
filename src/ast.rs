@@ -49,6 +49,7 @@ pub enum Expr {
     Member {
         object: Box<Expr>,
         property: Box<Expr>,
+        computed: bool,
     },
     Identifier(String),
     NumericLiteral(f64),

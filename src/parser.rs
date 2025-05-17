@@ -364,19 +364,33 @@ impl Parser {
     fn parse_member_expr(&mut self) -> Expr {
         let mut object = self.parse_primary_expr();
 
-        while self.at().token_type == TokenType::Dot {
+        while self.at().token_type == TokenType::Dot || self.at().token_type == TokenType::OpenBracket{
             let operator = self.eat();
             let property: Expr;
-
+            let computed: bool;
             if operator.token_type == TokenType::Dot {
+                computed = false;
                 property = self.parse_primary_expr();
                 if let Expr::Identifier(value) = &property {
                     object = Expr::Member {
                         object: Box::new(object),
                         property: Box::new(property),
+                        computed,
                     }
                 } else {
                     panic!("Cannonot use dot operator without right hand side being a identifier")
+                }
+            } else {
+                computed = true;
+                property = self.parse_expr();
+                self.expect(
+                    TokenType::CloseBracket,
+                    "Missing closing bracket in computed value.",
+                );
+                object = Expr::Member {
+                    object: Box::new(object),
+                    property: Box::new(property),
+                    computed
                 }
             }
         }
@@ -401,7 +415,7 @@ impl Parser {
     }
 
     fn parse_multiplicative_expr(&mut self) -> Expr {
-        let mut left = self.parse_call_member_expr() ;
+        let mut left = self.parse_call_member_expr();
 
         while ["*", "/", "%"].contains(&self.at().value.as_str()) {
             let operator = self.eat().value;
@@ -437,6 +451,27 @@ impl Parser {
                 let token = self.eat();
                 let name = token.value;
                 Expr::Identifier(name)
+            }
+            TokenType::OpenBracket => {
+                self.eat();
+                let mut elements: Vec<Expr> = Vec::new();
+                if self.at().token_type == TokenType::CloseBracket {
+                    self.eat();
+                    return Expr::ArrayLiteral(elements);
+                }
+
+                elements.push(self.parse_expr());
+
+                while self.at().token_type == TokenType::Comma {
+                    self.eat();
+                    elements.push(self.parse_expr());
+                }
+
+                self.expect(
+                    TokenType::CloseBracket,
+                    "Expected closing bracket ']' for array literal",
+                );
+                Expr::ArrayLiteral(elements)
             }
             TokenType::OpenParen => {
                 self.eat();

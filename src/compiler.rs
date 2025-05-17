@@ -25,6 +25,7 @@ impl Compiler {
             Stmt::ReturnStatement { .. } => self.compile_return_stmt(stmt),
             Stmt::IfStatement { .. } => self.compile_if_stmt(stmt),
             Stmt::WhileStatement { .. } => self.compile_while_stmt(stmt),
+            Stmt::FunctionDeclaration { .. } => self.compile_fun_declaration(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");
@@ -150,6 +151,36 @@ impl Compiler {
             compiled_while_stmt
         } else {
             panic!("Expected a while stmt");
+        }
+    }
+
+    fn compile_fun_declaration(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::FunctionDeclaration {
+            name,
+            parameters,
+            body,
+        } = stmt
+        {
+            let mut compiled_function: String = String::new();
+            compiled_function.push_str(&format!("function {}(", name));
+            
+            if !parameters.is_empty() {
+                compiled_function.push_str(&parameters.join(", "));
+            }
+
+            compiled_function.push_str(") {\n");
+            self.increase_indent();
+
+            for stmt in body {
+                let compiled_stmt = self.compile_stmt(stmt);
+                compiled_function.push_str(&format!("{}{}\n", self.get_indent(), compiled_stmt));
+            }
+
+            self.decrease_indent();
+            compiled_function.push_str(&format!("{}}}", self.get_indent()));
+            compiled_function
+        } else {
+            panic!("Function declaration expected")
         }
     }
 

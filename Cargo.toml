@@ -1,5 +1,5 @@
 [package]
-name = "rust_rewritr_programming_language"
+name = "lenniscript"
 version = "0.1.0"
 edition = "2021"
 

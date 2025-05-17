@@ -39,12 +39,12 @@ fn main() {
     };
 
     // Importieren und Ausführen der benötigten Module aus Ihrem Projekt
-    let mut parser = rust_rewritr_programming_language::parser::Parser::new();
+    let mut parser = lenniscript::parser::Parser::new();
     let ast = parser.produceAst(&source);
     println!("Geparster Code: {:?}", &ast);
 
     // Compiler initialisieren
-    let mut compiler = rust_rewritr_programming_language::compiler::Compiler {
+    let mut compiler = lenniscript::compiler::Compiler {
         output: String::new(),
         indent_level: 0,
     };

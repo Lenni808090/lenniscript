@@ -63,6 +63,8 @@ impl Parser {
 
             TokenType::While => self.parse_while_statement(),
 
+            TokenType::Fn => self.parse_fn_declaration(),
+
             _ => {
                 let expr = self.parse_expr();
                 self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
@@ -225,6 +227,48 @@ impl Parser {
         }
     }
 
+    fn parse_fn_declaration(&mut self) -> Stmt {
+        self.eat();
+
+        let name = self.expect(TokenType::Identifier, "name expected after fn keyword").value;
+
+        let args = self.parse_args();
+        let mut params: Vec<String> = Vec::new();
+        for arg in args {
+            if let Expr::Identifier(symbol) = arg {
+                params.push(symbol)
+            } else {
+                println!("{:?}", arg);
+                panic!("Inside function declaration expected parameters to be of type string.");
+            }
+        }
+
+        self.expect(
+            TokenType::OpenBrace,
+            "Expected function body following declaration",
+        );
+        let mut body: Vec<Stmt> = Vec::new();
+
+        while self.at().token_type != TokenType::EoF
+            || self.at().token_type != TokenType::CloseBrace
+        {
+            body.push(self.parse_stmt());
+        }
+
+        self.expect(
+            TokenType::CloseBrace,
+            "Closing brace expected inside function declarations",
+        );
+
+        let fun = Stmt::FunctionDeclaration {
+            name,
+            body,
+            parameters: params,
+        };
+
+        fun
+    }
+
     fn parse_assignment_expr(&mut self) -> Expr {
         let mut left = self.parse_object_expr();
 
@@ -364,7 +408,9 @@ impl Parser {
     fn parse_member_expr(&mut self) -> Expr {
         let mut object = self.parse_primary_expr();
 
-        while self.at().token_type == TokenType::Dot || self.at().token_type == TokenType::OpenBracket{
+        while self.at().token_type == TokenType::Dot
+            || self.at().token_type == TokenType::OpenBracket
+        {
             let operator = self.eat();
             let property: Expr;
             let computed: bool;
@@ -390,7 +436,7 @@ impl Parser {
                 object = Expr::Member {
                     object: Box::new(object),
                     property: Box::new(property),
-                    computed
+                    computed,
                 }
             }
         }

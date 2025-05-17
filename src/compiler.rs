@@ -136,7 +136,7 @@ impl Compiler {
         if let Stmt::WhileStatement { condition, body } = stmt {
             let mut compiled_while_stmt: String = String::new();
             let condition: String = self.compile_expr(&condition);
-            compiled_while_stmt.push_str(&format!("{}while ({})", self.get_indent(), condition));
+            compiled_while_stmt.push_str(&format!("while ({})", condition)); // kein get_indent() hier
             compiled_while_stmt.push_str(" {\n");
 
             self.increase_indent();
@@ -154,6 +154,7 @@ impl Compiler {
         }
     }
 
+
     fn compile_fun_declaration(&mut self, stmt: &Stmt) -> String {
         if let Stmt::FunctionDeclaration {
             name,
@@ -163,7 +164,7 @@ impl Compiler {
         {
             let mut compiled_function: String = String::new();
             compiled_function.push_str(&format!("function {}(", name));
-            
+
             if !parameters.is_empty() {
                 compiled_function.push_str(&parameters.join(", "));
             }

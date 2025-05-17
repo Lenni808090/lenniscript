@@ -249,9 +249,7 @@ impl Parser {
         );
         let mut body: Vec<Stmt> = Vec::new();
 
-        while self.at().token_type != TokenType::EoF
-            || self.at().token_type != TokenType::CloseBrace
-        {
+        while self.at().token_type != TokenType::CloseBrace {
             body.push(self.parse_stmt());
         }
 
@@ -260,13 +258,11 @@ impl Parser {
             "Closing brace expected inside function declarations",
         );
 
-        let fun = Stmt::FunctionDeclaration {
+        Stmt::FunctionDeclaration {
             name,
             body,
             parameters: params,
-        };
-
-        fun
+        }
     }
 
     fn parse_assignment_expr(&mut self) -> Expr {

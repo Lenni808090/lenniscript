@@ -1,13 +1,14 @@
-let x = {foo: "bar", hi: null};
-let i = 0;
-while ((1 < 5)) {
-    if ((5 == 4)) {
-        x.foo = ["3", "bar", ];
-    } else if((4 == 5)) {
-        x.foo = "2";
-    } else {
-        x.foo = "4";
+let x = {foo: "bar"};
+function testfn(i) {
+    while ((i < 5)) {
+        if ((i == 4)) {
+            x.foo = ["3", "bar", ];
+        } else if((i == 5)) {
+            x.foo = ["3", "apple", ];
+        } else {
+            x.foo = ["3", "grr", ];
+        }
+        i = (i + 1);
     }
-    i = (i + 1);
 }
 console.log(x.foo[1])

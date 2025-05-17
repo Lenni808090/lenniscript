@@ -11,21 +11,21 @@ fn main() {
     let source = r#"
     let x = {
         foo: "bar",
-        hi,
     };
     
-    let i = 0; 
-     while(i < 5) {
-        if(5 == 4) {
-            x.foo = ["3", "bar"];
-        }else if(4 == 5){
-            x.foo = "2";
-        }else {
-            x.foo = "4";
-        }
-        i = i + 1;
-     }
-     console.log(x.foo[1]);
+    fn testfn(i){ 
+         while(i < 5) {
+            if(i == 4) {
+                x.foo = ["3", "bar"];
+            }else if(i == 5){
+                x.foo = ["3", "apple"];
+            }else {
+                x.foo = ["3", "grr"];
+            }
+            i = i + 1;
+         }
+    }
+    console.log(x.foo[1]);
     "#;
 
     let mut parser = parser::Parser::new();

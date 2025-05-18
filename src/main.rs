@@ -14,8 +14,8 @@ fn main() {
             let res: num = num1 + num2;
             return res;
         }
-        let x = [1,2];
-        x[1] = "32";
+        let x: array<bool> = [true,false];
+        x[1] = "lll";
     "#;
 
     let mut parser = parser::Parser::new();

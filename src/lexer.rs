@@ -51,28 +51,23 @@ pub enum TokenType {
 pub struct Token {
     pub token_type: TokenType,
     pub value: String,
+    pub line: u32,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, value: String) -> Self {
-        Self { token_type, value }
-    }
-
-    // This creates tokens for single characters without allocating a new String
-    pub fn new_single_char(token_type: TokenType, c: char) -> Self {
-        let mut s = String::with_capacity(1);
-        s.push(c);
-        Self {
+    pub fn new(token_type: TokenType, value: String, line: u32) -> Self {
+        Token {
             token_type,
-            value: s,
+            value,
+            line,
         }
     }
 
-    // This creates tokens for keywords and other predefined values
-    pub fn new_static(token_type: TokenType, value: &'static str) -> Self {
+    pub fn new_static(token_type: TokenType, value: &'static str, line: u32) -> Self {
         Self {
             token_type,
             value: value.to_string(),
+            line,
         }
     }
 }
@@ -92,51 +87,53 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn tokenize(mut self) -> Vec<Token> {
+        let mut line: u32 = 1;
         while let Some(&c) = self.chars.peek() {
             match c {
                 '(' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::OpenParen, "("));
+                        .push(Token::new_static(TokenType::OpenParen, "(", line));
                 }
                 ')' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::CloseParen, ")"));
+                        .push(Token::new_static(TokenType::CloseParen, ")", line));
                 }
                 '{' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::OpenBrace, "{"));
+                        .push(Token::new_static(TokenType::OpenBrace, "{", line));
                 }
                 '}' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::CloseBrace, "}"));
+                        .push(Token::new_static(TokenType::CloseBrace, "}", line));
                 }
                 '[' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::OpenBracket, "["));
+                        .push(Token::new_static(TokenType::OpenBracket, "[", line));
                 }
                 ']' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::CloseBracket, "]"));
+                        .push(Token::new_static(TokenType::CloseBracket, "]", line));
                 }
                 '+' | '-' | '/' | '*' | '%' => {
                     let op = self.chars.next().unwrap();
                     self.tokens
-                        .push(Token::new_single_char(TokenType::BinaryOperator, op));
+                        .push(Token::new(TokenType::BinaryOperator, op.to_string(), line));
                 }
                 '=' => {
                     self.chars.next();
                     if let Some(&'=') = self.chars.peek() {
                         self.chars.next();
                         self.tokens
-                            .push(Token::new_static(TokenType::EqualsEquals, "=="));
+                            .push(Token::new_static(TokenType::EqualsEquals, "==", line));
                     } else {
-                        self.tokens.push(Token::new_static(TokenType::Equals, "="));
+                        self.tokens
+                            .push(Token::new_static(TokenType::Equals, "=", line));
                     }
                 }
                 '!' => {
@@ -144,7 +141,7 @@ impl<'a> Lexer<'a> {
                     if let Some(&'=') = self.chars.peek() {
                         self.chars.next();
                         self.tokens
-                            .push(Token::new_static(TokenType::NotEquals, "!="));
+                            .push(Token::new_static(TokenType::NotEquals, "!=", line));
                     } else {
                         panic!("Unbekanntes Zeichen: '!' ")
                     }
@@ -154,61 +151,70 @@ impl<'a> Lexer<'a> {
                     if let Some(&'=') = self.chars.peek() {
                         self.chars.next();
                         self.tokens
-                            .push(Token::new_static(TokenType::LessThenEquals, "<="));
+                            .push(Token::new_static(TokenType::LessThenEquals, "<=", line));
                     } else {
                         self.tokens
-                            .push(Token::new_static(TokenType::LessThen, "<"));
+                            .push(Token::new_static(TokenType::LessThen, "<", line));
                     }
                 }
                 '>' => {
                     self.chars.next();
                     if let Some(&'=') = self.chars.peek() {
                         self.chars.next();
-                        self.tokens
-                            .push(Token::new_static(TokenType::GreaterThenEquals, ">="));
+                        self.tokens.push(Token::new_static(
+                            TokenType::GreaterThenEquals,
+                            ">=",
+                            line,
+                        ));
                     } else {
                         self.tokens
-                            .push(Token::new_static(TokenType::GreaterThen, ">"));
+                            .push(Token::new_static(TokenType::GreaterThen, ">", line));
                     }
                 }
-                '"' => self.tokenize_string(),
+                '"' => self.tokenize_string(line),
                 ';' => {
                     self.chars.next();
                     self.tokens
-                        .push(Token::new_static(TokenType::Semicolon, ";"));
+                        .push(Token::new_static(TokenType::Semicolon, ";", line));
                 }
                 '.' => {
                     self.chars.next();
-                    self.tokens.push(Token::new_static(TokenType::Dot, "."));
+                    self.tokens
+                        .push(Token::new_static(TokenType::Dot, ".", line));
                 }
                 ',' => {
                     self.chars.next();
-                    self.tokens.push(Token::new_static(TokenType::Comma, ","));
+                    self.tokens
+                        .push(Token::new_static(TokenType::Comma, ",", line));
                 }
                 ':' => {
                     self.chars.next();
-                    self.tokens.push(Token::new_static(TokenType::Colon, ":"));
+                    self.tokens
+                        .push(Token::new_static(TokenType::Colon, ":", line));
                 }
                 _ => {
                     if c.is_ascii_digit() {
-                        self.tokenize_number();
+                        self.tokenize_number(line);
                     } else if c.is_alphabetic() {
-                        self.tokenize_identifier();
+                        self.tokenize_identifier(line);
                     } else if c.is_whitespace() {
+                        if c == '\n' {
+                            line += 1;
+                        }
                         self.chars.next();
                     } else {
-                        self.chars.next(); // Skip unknown characters
+                        self.chars.next(); 
                     }
                 }
             }
         }
 
         self.tokens
-            .push(Token::new_static(TokenType::EoF, "EndOfFile"));
+            .push(Token::new_static(TokenType::EoF, "EndOfFile", line));
         self.tokens
     }
 
-    fn tokenize_string(&mut self) {
+    fn tokenize_string(&mut self, line: u32) {
         self.chars.next(); // Skip the opening quote
         let mut string_literal = String::new();
 
@@ -225,10 +231,10 @@ impl<'a> Lexer<'a> {
         }
 
         self.tokens
-            .push(Token::new(TokenType::_String, string_literal));
+            .push(Token::new(TokenType::_String, string_literal, line));
     }
 
-    fn tokenize_number(&mut self) {
+    fn tokenize_number(&mut self, line: u32) {
         let mut number = String::new();
         let mut has_dot = false;
 
@@ -249,10 +255,11 @@ impl<'a> Lexer<'a> {
             panic!("Ungültiger Float-Wert: {}", number);
         }
 
-        self.tokens.push(Token::new(TokenType::_Number, number));
+        self.tokens
+            .push(Token::new(TokenType::_Number, number, line));
     }
 
-    fn tokenize_identifier(&mut self) {
+    fn tokenize_identifier(&mut self, line: u32) {
         let mut identifier = String::new();
 
         while let Some(&ch) = self.chars.peek() {
@@ -276,10 +283,12 @@ impl<'a> Lexer<'a> {
             "false" => TokenType::False,
             "string" => TokenType::TypeAnnotation,
             "num" => TokenType::TypeAnnotation,
+            "array" => TokenType::TypeAnnotation,
+            "bool" => TokenType::TypeAnnotation,
             _ => TokenType::Identifier,
         };
 
-        self.tokens.push(Token::new(token_type, identifier));
+        self.tokens.push(Token::new(token_type, identifier, line));
     }
 }
 

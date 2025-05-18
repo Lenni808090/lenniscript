@@ -1,23 +1,10 @@
 use crate::ast;
 use crate::ast::Stmt::WhileStatement;
+use crate::ast::Type::{Boolean, Number};
 use crate::ast::{ElseIfBranch, Expr, Property, Stmt, Type};
 use crate::lexer;
 use crate::lexer::{tokenize, Token, TokenType};
 use std::str::FromStr;
-
-impl FromStr for Type {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "num" => Ok(Type::Number),
-            "string" => Ok(Type::String),
-            "bool" => Ok(Type::Boolean),
-            "any" => Ok(Type::Any),
-            _ => Err(format!("Unbekannter Typ: {}", s)),
-        }
-    }
-}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -35,7 +22,49 @@ impl Parser {
             false
         }
     }
+    fn get_type(&mut self) -> Type {
+        let type_token_string = self
+            .expect(TokenType::TypeAnnotation, "Type anotation after : expected")
+            .value;
+        match type_token_string.as_str() {
+            "array" => {
+                self.expect(TokenType::LessThen, "Expected less then after array ");
+                let type_array_string = self
+                    .expect(
+                        TokenType::TypeAnnotation,
+                        "You need to specify the array type",
+                    )
+                    .value;
+                match type_array_string.as_str() {
+                    "bool" => {
+                        self.expect(TokenType::GreaterThen, "greeater then after specifing array type needed");
+                        Type::Array(Box::new(Boolean)) 
+                    },
+                    "num" => {
+                        self.expect(TokenType::GreaterThen, "greeater then after specifing array type needed");
+                        Type::Array(Box::new(Number)) 
+                    },
+                    "string" => {
+                        self.expect(TokenType::GreaterThen, "greeater then after specifing array type needed");
+                        Type::Array(Box::new(Type::String)) 
+                    },
 
+                    _ => {
+                        panic!("Error in get type array");
+                    }
+                }
+                
+            }
+
+            "bool" => Type::Boolean,
+            "num" => Type::Number,
+            "string" => Type::String,
+
+            _ => {
+                panic!("Error in get type");
+            }
+        }
+    }
     fn at(&self) -> &Token {
         self.tokens.first().expect("Keine Tokens verfügbar")
     }
@@ -231,13 +260,7 @@ impl Parser {
         let mut var_type = Type::Any;
         if self.at().token_type == TokenType::Colon {
             self.eat();
-            let _type_str = self
-                .expect(TokenType::TypeAnnotation, "Type annotation expected")
-                .value
-                .to_string();
-            var_type = _type_str
-                .parse::<Type>()
-                .unwrap_or_else(|err| panic!("{}", err));
+            var_type = self.get_type();
         }
         self.expect(TokenType::Equals, "Erwartete '=' nach Bezeichner");
         let value = self.parse_expr();
@@ -428,12 +451,7 @@ impl Parser {
 
         if self.at().token_type == TokenType::Colon {
             self.eat();
-            let type_str = self
-                .expect(TokenType::TypeAnnotation, "Type annotation expected")
-                .value;
-            let param_type = type_str
-                .parse::<Type>()
-                .unwrap_or_else(|err| panic!("{}", err));
+            let param_type = self.get_type();
 
             args_types[0] = param_type;
         }
@@ -443,12 +461,7 @@ impl Parser {
             args.push(self.parse_assignment_expr());
             if self.at().token_type == TokenType::Colon {
                 self.eat();
-                let type_str = self
-                    .expect(TokenType::TypeAnnotation, "Type annotation expected")
-                    .value;
-                let param_type = type_str
-                    .parse::<Type>()
-                    .unwrap_or_else(|err| panic!("{}", err));
+                let param_type = self.get_type();
 
                 args_types.push(param_type);
             } else {

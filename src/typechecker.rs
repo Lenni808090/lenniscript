@@ -536,33 +536,8 @@ impl TypeChecker {
                 Expr::Member {
                     object, property, ..
                 } => {
-                    let obj_type = self.infer_type(object)?;
-
-                    if let Expr::Identifier(prop_name) = property.as_ref() {
-                        if let Expr::Identifier(obj_name) = object.as_ref() {
-                            if let Some(return_type) =
-                                self.js_stdlib.get_method_type(obj_name, prop_name)
-                            {
-                                return Ok(return_type);
-                            }
-                        }
-
-                        if let Some(return_type) = self
-                            .js_stdlib
-                            .get_primitive_method_type(&obj_type, prop_name)
-                        {
-                            return Ok(return_type);
-                        }
-
-                        match obj_type {
-                            Type::Object(_) => Ok(Type::Any),
-                            _ => Err(TypeError {
-                                message: format!(
-                                    "Cannot call method '{}' on type {:?}",
-                                    prop_name, obj_type
-                                ),
-                            }),
-                        }
+                   if let Expr::Identifier(prop_name) = property.as_ref(){
+                       self.get_method_return_type(object, prop_name)
                     } else {
                         Err(TypeError {
                             message: "Property must be an identifier".to_string(),
@@ -644,6 +619,37 @@ impl TypeChecker {
             Ok(Type::Any)
         } else {
             panic!("Member expression expected");
+        }
+    }
+
+    fn get_method_return_type(
+        &mut self,
+        object: &Expr,
+        method_name: &str,
+    ) -> Result<Type, TypeError> {
+        let obj_type = self.infer_type(object)?;
+
+        if let Expr::Identifier(obj_name) = object {
+            if let Some(return_type) = self.js_stdlib.get_method_type(obj_name, method_name) {
+                return Ok(return_type);
+            }
+        }
+
+        if let Some(return_type) = self
+            .js_stdlib
+            .get_primitive_method_type(&obj_type, method_name)
+        {
+            return Ok(return_type);
+        }
+
+        match obj_type {
+            Type::Object(_) => Ok(Type::Any),
+            _ => Err(TypeError {
+                message: format!(
+                    "Cannot call method '{}' on type {:?}",
+                    method_name, obj_type
+                ),
+            }),
         }
     }
 }

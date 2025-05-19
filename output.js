@@ -8,4 +8,5 @@ for (let wahr in x) {
     let i = 0
     x[i] = wahr
     i = (i + 1)
+    console.log(wahr)
 }

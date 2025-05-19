@@ -1,8 +1,8 @@
 mod ast;
 mod compiler;
+mod js_stdlib;
 mod lexer;
 mod parser;
-
 mod typechecker;
 use compiler::Compiler;
 use std::fs::File;
@@ -20,7 +20,9 @@ fn main() {
             let i = 0;
             x[i] = wahr;
             i = i + 1;
+            let y: num = console.log(wahr);
         }
+        
     "#;
 
     let mut parser = parser::Parser::new();

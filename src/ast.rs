@@ -82,6 +82,7 @@ pub enum Type {
     Array(Box<Type>),
     Object(HashMap<String, Type>),
     Any,
+    Void,
 }
 #[derive(Debug)]
 pub struct ElseIfBranch {

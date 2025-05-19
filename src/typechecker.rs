@@ -1,10 +1,11 @@
 use crate::ast::{Expr, Stmt, Type};
+use crate::js_stdlib::JsStdLib;
 use std::collections::HashMap;
-use std::hash::RandomState;
 
 pub struct TypeChecker {
     scope_stack: Vec<HashMap<String, Type>>,
     function_signatures: HashMap<String, Vec<Type>>,
+    js_stdlib: JsStdLib,
 }
 
 #[derive(Debug)]
@@ -38,7 +39,6 @@ impl TypeChecker {
         None
     }
 
-
     pub fn print_current_scope(&mut self) {
         println!("\nCurrent Scope Variables:");
         println!("-----------------------");
@@ -49,13 +49,20 @@ impl TypeChecker {
         }
     }
 
-
     pub fn new() -> Self {
         let mut scope_stack = Vec::new();
-        scope_stack.push(HashMap::new()); // Globaler Scope
+        let mut global_scope = HashMap::new();
+
+        let js_stdlib = JsStdLib::new();
+        for (obj_name, methods) in &js_stdlib.objects {
+            global_scope.insert(obj_name.clone(), Type::Object(methods.clone()));
+        }
+
+        scope_stack.push(global_scope);
         Self {
             scope_stack,
             function_signatures: HashMap::new(),
+            js_stdlib,
         }
     }
 
@@ -532,6 +539,21 @@ impl TypeChecker {
                     let obj_type = self.infer_type(object)?;
 
                     if let Expr::Identifier(prop_name) = property.as_ref() {
+                        if let Expr::Identifier(obj_name) = object.as_ref() {
+                            if let Some(return_type) =
+                                self.js_stdlib.get_method_type(obj_name, prop_name)
+                            {
+                                return Ok(return_type);
+                            }
+                        }
+
+                        if let Some(return_type) = self
+                            .js_stdlib
+                            .get_primitive_method_type(&obj_type, prop_name)
+                        {
+                            return Ok(return_type);
+                        }
+
                         match obj_type {
                             Type::Object(_) => Ok(Type::Any),
                             _ => Err(TypeError {
@@ -581,25 +603,23 @@ impl TypeChecker {
             computed,
         } = expr
         {
-            let object_type = self.infer_type(object)?;
+            let obj_type = self.infer_type(object)?;
 
-            match object_type {
+            match obj_type {
                 Type::Array(element_type) => {
                     if *computed {
-                        if let Ok(Type::Number) = self.infer_type(property) {
-                            return Ok(*element_type);
+                        let index_type = self.infer_type(property)?;
+                        if index_type != Type::Number {
+                            return Err(TypeError {
+                                message: "Array index must be a number".to_string(),
+                            });
                         }
-                        return Err(TypeError {
-                            message: "Array index must be a number".to_string(),
-                        });
+                        return Ok(*element_type.clone());
                     }
-                    Err(TypeError {
-                        message: "Array access must use computed property syntax []".to_string(),
-                    })
                 }
-                Type::Object(prop_types) => {
+                Type::Object(properties) => {
                     if let Expr::Identifier(prop_name) = property.as_ref() {
-                        if let Some(prop_type) = prop_types.get(prop_name) {
+                        if let Some(prop_type) = properties.get(prop_name) {
                             return Ok(prop_type.clone());
                         } else {
                             return Err(TypeError {
@@ -609,22 +629,21 @@ impl TypeChecker {
                                 ),
                             });
                         }
-                    } else {
-                        return Err(TypeError {
-                            message: "Property must be an identifier".to_string(),
-                        });
+                    } else if *computed {
+                        let _prop_type = self.infer_type(property)?;
+                        return Ok(Type::Any);
                     }
                 }
-                _ => Err(TypeError {
-                    message: format!(
-                        "Cannot access property on non-object type: {:?}",
-                        object_type
-                    ),
-                }),
+                _ => {
+                    return Err(TypeError {
+                        message: format!("Cannot access property on type {:?}", obj_type),
+                    });
+                }
             }
+
+            Ok(Type::Any)
         } else {
-            panic!("Expected Member expression");
+            panic!("Member expression expected");
         }
     }
 }
-

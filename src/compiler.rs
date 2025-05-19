@@ -63,7 +63,6 @@ impl Compiler {
                 self.compile_expr(value.as_ref().expect("Fehlender Initialisierungswert"));
             vardecl.push_str(&compiled_value);
 
-            vardecl.push(';');
             vardecl
         } else {
             panic!("expected var declaration")
@@ -194,36 +193,48 @@ impl Compiler {
         }
     }
 
-
-
     fn compile_for_loop(&mut self, stmt: &Stmt) -> String {
-        if let Stmt::ForLoopStatement {initializer, condition, update, body} = stmt {
+        if let Stmt::ForLoopStatement {
+            initializer,
+            condition,
+            update,
+            body,
+        } = stmt
+        {
             let mut compiled_for_loop = String::new();
-            let comp_initializer = self.compile_var_declaration(stmt);
+            let mut comp_initializer = String::new();
+            if let Some(init) = initializer {
+                comp_initializer = self.compile_var_declaration(init);
+            }
             let mut comp_condition = String::new();
             if let Some(cond) = condition {
                 comp_condition = self.compile_binary_expr(cond);
-            }else {
-                panic!("No condiotion");
+            } else {
+                panic!("No condition");
             }
-            let mut comp_update= String::new();
+            let mut comp_update = String::new();
             if let Some(up) = update {
-                comp_update = self.compile_binary_expr(up);
+                comp_update = self.compile_expr(up);
             } else {
                 panic!("No update");
             }
 
-            compiled_for_loop.push_str(&format!("for({} {}; {})", comp_initializer, comp_condition, comp_update));
-            compiled_for_loop.push('{');
-            for stmt in body{
+            compiled_for_loop.push_str(&format!(
+                "for ({}; {}; {})",
+                comp_initializer, comp_condition, comp_update
+            ));
+            compiled_for_loop.push_str(" {\n");
+
+            self.increase_indent();
+            for stmt in body {
                 let compiled_stmt = self.compile_stmt(stmt);
-                compiled_for_loop.push_str(compiled_stmt.as_str());
+                compiled_for_loop.push_str(&format!("{}{}\n", self.get_indent(), compiled_stmt));
             }
-            compiled_for_loop.push('}');
+            self.decrease_indent();
 
-
+            compiled_for_loop.push_str(&format!("{}}}", self.get_indent()));
             compiled_for_loop
-        }else {
+        } else {
             panic!("Expected for loop")
         }
     }
@@ -288,7 +299,7 @@ impl Compiler {
             let assigne = self.compile_expr(assignee);
             let value = self.compile_expr(value);
 
-            compiled_assignment.push_str(&format!("{} = {};", assigne, value));
+            compiled_assignment.push_str(&format!("{} = {}", assigne, value));
 
             compiled_assignment
         } else {

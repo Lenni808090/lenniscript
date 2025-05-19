@@ -37,23 +37,31 @@ impl Parser {
                     .value;
                 match type_array_string.as_str() {
                     "bool" => {
-                        self.expect(TokenType::GreaterThen, "greeater then after specifing array type needed");
-                        Type::Array(Box::new(Boolean)) 
-                    },
+                        self.expect(
+                            TokenType::GreaterThen,
+                            "greeater then after specifing array type needed",
+                        );
+                        Type::Array(Box::new(Boolean))
+                    }
                     "num" => {
-                        self.expect(TokenType::GreaterThen, "greeater then after specifing array type needed");
-                        Type::Array(Box::new(Number)) 
-                    },
+                        self.expect(
+                            TokenType::GreaterThen,
+                            "greeater then after specifing array type needed",
+                        );
+                        Type::Array(Box::new(Number))
+                    }
                     "string" => {
-                        self.expect(TokenType::GreaterThen, "greeater then after specifing array type needed");
-                        Type::Array(Box::new(Type::String)) 
-                    },
+                        self.expect(
+                            TokenType::GreaterThen,
+                            "greeater then after specifing array type needed",
+                        );
+                        Type::Array(Box::new(Type::String))
+                    }
 
                     _ => {
                         panic!("Error in get type array");
                     }
                 }
-                
             }
 
             "bool" => Type::Boolean,
@@ -321,7 +329,6 @@ impl Parser {
         }
     }
 
-
     fn parse_for_statement(&mut self) -> Stmt {
         self.eat();
 
@@ -333,11 +340,9 @@ impl Parser {
             } else {
                 Some(Box::new(Stmt::Expression(self.parse_expr())))
             }
-        }else {
+        } else {
             None
         };
-
-        self.expect(TokenType::Semicolon, "Expected ';' after loop initializer");
 
         let condition = if self.at().token_type != TokenType::Semicolon {
             Some(self.parse_expr())
@@ -373,7 +378,6 @@ impl Parser {
             update,
             body,
         }
-
     }
 
     fn parse_assignment_expr(&mut self) -> Expr {

@@ -15,9 +15,9 @@ fn main() {
             return res;
         }
         let x: array<bool> = [true,false];
-        x[1] = "lll";
-        for(let x = 0; x < 10, x = x + 1){
-            console.log(x);
+        x[1] = true;
+        for(let i = 0; i < 10; i = i + 1){
+            x[i] = false;
         }
     "#;
 

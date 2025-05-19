@@ -32,12 +32,18 @@ pub enum Stmt {
         value: Option<Expr>,
     },
 
-    ForLoopStatement{
+    ForLoopStatement {
         initializer: Option<Box<Stmt>>,
         condition: Option<Expr>,
         update: Option<Expr>,
         body: Vec<Stmt>,
-    }
+    },
+
+    ForInLoopStatement {
+        iterator: Box<Expr>,
+        iterable: Box<Expr>,
+        body: Vec<Stmt>,
+    },
 }
 
 #[derive(Debug)]

@@ -109,6 +109,8 @@ impl Parser {
 
             TokenType::Fn => self.parse_fn_declaration(),
 
+            TokenType::For => self.parse_for_statement(),
+
             _ => {
                 let expr = self.parse_expr();
                 self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
@@ -203,7 +205,7 @@ impl Parser {
     }
 
     fn parse_while_statement(&mut self) -> Stmt {
-        self.eat(); // Konsumiert 'while'
+        self.eat();
         self.expect(TokenType::OpenParen, "Open Paren expected after while");
         let condition = self.parse_expr();
         self.expect(
@@ -317,6 +319,61 @@ impl Parser {
             parameters: params,
             param_types: arg_types,
         }
+    }
+
+
+    fn parse_for_statement(&mut self) -> Stmt {
+        self.eat();
+
+        self.expect(TokenType::OpenParen, "Expected '(' after 'for'");
+
+        let initializer = if self.at().token_type != TokenType::Semicolon {
+            if self.at().token_type == TokenType::Let || self.at().token_type == TokenType::Const {
+                Some(Box::new(self.parse_var_declaration()))
+            } else {
+                Some(Box::new(Stmt::Expression(self.parse_expr())))
+            }
+        }else {
+            None
+        };
+
+        self.expect(TokenType::Semicolon, "Expected ';' after loop initializer");
+
+        let condition = if self.at().token_type != TokenType::Semicolon {
+            Some(self.parse_expr())
+        } else {
+            None
+        };
+
+        self.expect(TokenType::Semicolon, "Expected ';' after loop condition");
+
+        let update = if self.at().token_type != TokenType::CloseParen {
+            Some(self.parse_expr())
+        } else {
+            None
+        };
+
+        self.expect(TokenType::CloseParen, "Expected ')' after for clauses");
+
+        let body = if self.at().token_type == TokenType::OpenBrace {
+            self.eat();
+            let mut statements = Vec::new();
+            while self.not_eof() && self.at().token_type != TokenType::CloseBrace {
+                statements.push(self.parse_stmt());
+            }
+            self.expect(TokenType::CloseBrace, "Expected '}' after for loop body");
+            statements
+        } else {
+            vec![self.parse_stmt()]
+        };
+
+        Stmt::ForLoopStatement {
+            initializer,
+            condition,
+            update,
+            body,
+        }
+
     }
 
     fn parse_assignment_expr(&mut self) -> Expr {

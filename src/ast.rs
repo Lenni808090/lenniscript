@@ -31,6 +31,13 @@ pub enum Stmt {
     ReturnStatement {
         value: Option<Expr>,
     },
+
+    ForLoopStatement{
+        initializer: Option<Box<Stmt>>,
+        condition: Option<Expr>,
+        update: Option<Expr>,
+        body: Vec<Stmt>,
+    }
 }
 
 #[derive(Debug)]

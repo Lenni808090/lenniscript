@@ -33,6 +33,7 @@ impl Compiler {
             Stmt::IfStatement { .. } => self.compile_if_stmt(stmt),
             Stmt::WhileStatement { .. } => self.compile_while_stmt(stmt),
             Stmt::FunctionDeclaration { .. } => self.compile_fun_declaration(stmt),
+            Stmt::ForLoopStatement { .. } => self.compile_for_loop(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");
@@ -190,6 +191,40 @@ impl Compiler {
             compiled_function
         } else {
             panic!("Function declaration expected")
+        }
+    }
+
+
+
+    fn compile_for_loop(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::ForLoopStatement {initializer, condition, update, body} = stmt {
+            let mut compiled_for_loop = String::new();
+            let comp_initializer = self.compile_var_declaration(stmt);
+            let mut comp_condition = String::new();
+            if let Some(cond) = condition {
+                comp_condition = self.compile_binary_expr(cond);
+            }else {
+                panic!("No condiotion");
+            }
+            let mut comp_update= String::new();
+            if let Some(up) = update {
+                comp_update = self.compile_binary_expr(up);
+            } else {
+                panic!("No update");
+            }
+
+            compiled_for_loop.push_str(&format!("for({} {}; {})", comp_initializer, comp_condition, comp_update));
+            compiled_for_loop.push('{');
+            for stmt in body{
+                let compiled_stmt = self.compile_stmt(stmt);
+                compiled_for_loop.push_str(compiled_stmt.as_str());
+            }
+            compiled_for_loop.push('}');
+
+
+            compiled_for_loop
+        }else {
+            panic!("Expected for loop")
         }
     }
 

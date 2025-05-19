@@ -16,6 +16,9 @@ fn main() {
         }
         let x: array<bool> = [true,false];
         x[1] = "lll";
+        for(let x = 0; x < 10, x = x + 1){
+            console.log(x);
+        }
     "#;
 
     let mut parser = parser::Parser::new();

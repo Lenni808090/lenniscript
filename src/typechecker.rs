@@ -1,5 +1,6 @@
 use crate::ast::{Expr, Stmt, Type};
 use std::collections::HashMap;
+use std::hash::RandomState;
 
 pub struct TypeChecker {
     scope_stack: Vec<HashMap<String, Type>>,
@@ -85,6 +86,7 @@ impl TypeChecker {
             Stmt::FunctionDeclaration { .. } => self.check_fn_declaration(stmt),
             Stmt::IfStatement { .. } => self.check_if_stmt(stmt),
             Stmt::WhileStatement { .. } => self.check_while_declaration(stmt),
+            Stmt::ForLoopStatement { .. } => self.check_for_loop(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -203,6 +205,42 @@ impl TypeChecker {
             })
         }
     }
+
+    fn check_for_loop(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::ForLoopStatement {initializer, condition, update, body} = stmt {
+            self.enter_scope();
+
+            if let Some(init) = initializer {
+                self.check_statement(init)?;
+            }
+            if let Some(cond) = condition {
+                let cond_type = self.infer_type(cond)?;
+                if cond_type != Type::Boolean {
+                    return Err(TypeError {
+                        message: format!("For loop condition must be boolean, got {:?}", cond),
+                    })
+                }
+            }
+
+            if let Some(update_expr) = update {
+                self.infer_type(update_expr)?;
+            }
+
+            for stmt in body {
+                self.check_statement(stmt)?;
+            }
+
+            self.exit_scope();
+            Ok(())
+        }else {
+            Err(TypeError {
+            message: "Expected for loop statement".to_string(),
+            })
+        }
+    }
+
+
+
 
     fn infer_type(&mut self, expr: &Expr) -> Result<Type, TypeError> {
         match expr {

@@ -18,6 +18,8 @@ pub enum TokenType {
     If,
     Else,
 
+    For,
+
     While,
 
     GreaterThen,
@@ -285,6 +287,7 @@ impl<'a> Lexer<'a> {
             "num" => TokenType::TypeAnnotation,
             "array" => TokenType::TypeAnnotation,
             "bool" => TokenType::TypeAnnotation,
+            "for" => TokenType::For,
             _ => TokenType::Identifier,
         };
 

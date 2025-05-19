@@ -336,7 +336,42 @@ impl Parser {
 
         let initializer = if self.at().token_type != TokenType::Semicolon {
             if self.at().token_type == TokenType::Let || self.at().token_type == TokenType::Const {
-                Some(Box::new(self.parse_var_declaration()))
+                let constant = self.at().token_type == TokenType::Const;
+                self.eat();
+
+                let identifier = self
+                    .expect(
+                        TokenType::Identifier,
+                        "Erwartete Bezeichner nach let/const Schlüsselwort",
+                    )
+                    .value;
+
+                if self.at().token_type == TokenType::In {
+                    Some(Box::new(Stmt::VarDeclaration {
+                        constant,
+                        identifier,
+                        var_type: Type::Any,
+                        value: None,
+                    }))
+                } else {
+                    let mut var_type = Type::Any;
+                    if self.at().token_type == TokenType::Colon {
+                        self.eat();
+                        var_type = self.get_type();
+                    }
+                    self.expect(TokenType::Equals, "Erwartete '=' nach Bezeichner");
+                    let value = self.parse_expr();
+                    self.expect(
+                        TokenType::Semicolon,
+                        "Erwartete Semikolon nach Initialisierung",
+                    );
+                    Some(Box::new(Stmt::VarDeclaration {
+                        constant,
+                        identifier,
+                        var_type,
+                        value: Some(value),
+                    }))
+                }
             } else {
                 Some(Box::new(Stmt::Expression(self.parse_expr())))
             }
@@ -344,19 +379,28 @@ impl Parser {
             None
         };
 
-        let condition = if self.at().token_type != TokenType::Semicolon {
-            Some(self.parse_expr())
-        } else {
-            None
-        };
+        let mut iterable: Option<Expr> = None;
+        let mut condition: Option<Expr> = None;
+        let mut update: Option<Expr> = None;
 
-        self.expect(TokenType::Semicolon, "Expected ';' after loop condition");
-
-        let update = if self.at().token_type != TokenType::CloseParen {
-            Some(self.parse_expr())
+        if self.at().token_type == TokenType::In {
+            self.eat();
+            iterable = Some(self.parse_expr());
         } else {
-            None
-        };
+            condition = if self.at().token_type != TokenType::Semicolon {
+                Some(self.parse_expr())
+            } else {
+                None
+            };
+
+            self.expect(TokenType::Semicolon, "Expected ';' after loop condition");
+
+            update = if self.at().token_type != TokenType::CloseParen {
+                Some(self.parse_expr())
+            } else {
+                None
+            };
+        }
 
         self.expect(TokenType::CloseParen, "Expected ')' after for clauses");
 
@@ -372,11 +416,19 @@ impl Parser {
             vec![self.parse_stmt()]
         };
 
-        Stmt::ForLoopStatement {
-            initializer,
-            condition,
-            update,
-            body,
+        if iterable.is_some() {
+            Stmt::ForInLoopStatement {
+                iterator: initializer,
+                iterable,
+                body,
+            }
+        } else {
+            Stmt::ForLoopStatement {
+                initializer,
+                condition,
+                update,
+                body,
+            }
         }
     }
 

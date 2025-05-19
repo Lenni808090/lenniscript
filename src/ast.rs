@@ -40,8 +40,8 @@ pub enum Stmt {
     },
 
     ForInLoopStatement {
-        iterator: Box<Expr>,
-        iterable: Box<Expr>,
+        iterator: Option<Box<Stmt>>,
+        iterable: Option<Expr>,
         body: Vec<Stmt>,
     },
 }

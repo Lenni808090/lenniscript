@@ -38,6 +38,18 @@ impl TypeChecker {
         None
     }
 
+
+    pub fn print_current_scope(&mut self) {
+        println!("\nCurrent Scope Variables:");
+        println!("-----------------------");
+        if let Some(current_scope) = self.scope_stack.last() {
+            for (name, var_type) in current_scope {
+                println!("{}: {:?}", name, var_type);
+            }
+        }
+    }
+
+
     pub fn new() -> Self {
         let mut scope_stack = Vec::new();
         scope_stack.push(HashMap::new()); // Globaler Scope
@@ -51,6 +63,14 @@ impl TypeChecker {
         if let Stmt::Program { body } = programm {
             for stmt in body {
                 self.check_statement(stmt)?;
+            }
+
+            println!("\nVariable Types:");
+            println!("---------------");
+            if let Some(global_scope) = self.scope_stack.first() {
+                for (name, var_type) in global_scope {
+                    println!("{}: {:?}", name, var_type);
+                }
             }
         }
 
@@ -87,6 +107,7 @@ impl TypeChecker {
             Stmt::IfStatement { .. } => self.check_if_stmt(stmt),
             Stmt::WhileStatement { .. } => self.check_while_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.check_for_loop(stmt),
+            Stmt::ForInLoopStatement { .. } => self.check_for_in_loop(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -207,7 +228,13 @@ impl TypeChecker {
     }
 
     fn check_for_loop(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
-        if let Stmt::ForLoopStatement {initializer, condition, update, body} = stmt {
+        if let Stmt::ForLoopStatement {
+            initializer,
+            condition,
+            update,
+            body,
+        } = stmt
+        {
             self.enter_scope();
 
             if let Some(init) = initializer {
@@ -218,7 +245,7 @@ impl TypeChecker {
                 if cond_type != Type::Boolean {
                     return Err(TypeError {
                         message: format!("For loop condition must be boolean, got {:?}", cond),
-                    })
+                    });
                 }
             }
 
@@ -232,15 +259,63 @@ impl TypeChecker {
 
             self.exit_scope();
             Ok(())
-        }else {
+        } else {
             Err(TypeError {
-            message: "Expected for loop statement".to_string(),
+                message: "Expected for loop statement".to_string(),
             })
         }
     }
 
+    fn check_for_in_loop(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::ForInLoopStatement {
+            iterable,
+            iterator,
+            body,
+        } = stmt
+        {
+            let element_type = if let Some(itera) = iterable {
+                let iter_type = self.infer_type(itera)?;
+                match iter_type {
+                    Type::Array(element_type) => Ok(*element_type),
+                    _ => {
+                        return Err(TypeError {
+                            message: "iterable must be of type array".to_string(),
+                        })
+                    }
+                }?
+            } else {
+                panic!("iteratable needed")
+            };
 
+            if let Some(iter) = iterator {
+                if let Stmt::VarDeclaration {
+                    identifier,
+                    var_type,
+                    ..
+                } = iter.as_ref()
+                {
+                    // Set the iterator variable's type to the element type of the array
+                    self.declare_variable(identifier.clone(), element_type.clone());
+                } else {
+                    self.check_statement(iter)?;
+                }
+            } else {
+                panic!("iterator needed");
+            }
 
+            self.enter_scope();
+            for stmt in body {
+                self.check_statement(stmt)?;
+            }
+            self.exit_scope();
+
+            Ok(())
+        } else {
+            Err(TypeError {
+                message: "Expected for-in loop statement".to_string(),
+            })
+        }
+    }
 
     fn infer_type(&mut self, expr: &Expr) -> Result<Type, TypeError> {
         match expr {
@@ -350,9 +425,7 @@ impl TypeChecker {
                             }
                         } else {
                             return Err(TypeError {
-                                message: format!(
-                                    "Cannot access property on non-object type "
-                                ),
+                                message: format!("Cannot access property on non-object type "),
                             });
                         }
                     }
@@ -390,22 +463,21 @@ impl TypeChecker {
             if values.is_empty() {
                 return Ok(Type::Array(Box::new(Type::Any)));
             }
-            
+
             let first_type = self.infer_type(&values[0])?;
-            
+
             for value in values.iter().skip(1) {
                 let value_type = self.infer_type(value)?;
                 if value_type != first_type && first_type != Type::Any && value_type != Type::Any {
                     return Err(TypeError {
                         message: format!(
                             "Array elements must have consistent types. Expected {:?}, got {:?}",
-                            first_type,
-                            value_type
+                            first_type, value_type
                         ),
                     });
                 }
             }
-            
+
             Ok(Type::Array(Box::new(first_type)))
         } else {
             panic!("array literal expected");
@@ -524,7 +596,7 @@ impl TypeChecker {
                     Err(TypeError {
                         message: "Array access must use computed property syntax []".to_string(),
                     })
-                },
+                }
                 Type::Object(prop_types) => {
                     if let Expr::Identifier(prop_name) = property.as_ref() {
                         if let Some(prop_type) = prop_types.get(prop_name) {
@@ -555,3 +627,4 @@ impl TypeChecker {
         }
     }
 }
+

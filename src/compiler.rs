@@ -34,6 +34,7 @@ impl Compiler {
             Stmt::WhileStatement { .. } => self.compile_while_stmt(stmt),
             Stmt::FunctionDeclaration { .. } => self.compile_fun_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.compile_for_loop(stmt),
+            Stmt::ForInLoopStatement { .. } => self.compile_for_in_loop(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");
@@ -46,7 +47,7 @@ impl Compiler {
             constant,
             identifier,
             value,
-            var_type,
+            ..
         } = stmt
         {
             let mut vardecl = String::new();
@@ -57,10 +58,14 @@ impl Compiler {
             }
 
             vardecl.push_str(identifier);
-            vardecl.push_str(" = ");
 
-            let compiled_value =
-                self.compile_expr(value.as_ref().expect("Fehlender Initialisierungswert"));
+            let compiled_value = if let Some(val) = value {
+                vardecl.push_str(" = ");
+                self.compile_expr(val)
+            } else {
+                "".to_string()
+            };
+
             vardecl.push_str(&compiled_value);
 
             vardecl
@@ -236,6 +241,46 @@ impl Compiler {
             compiled_for_loop
         } else {
             panic!("Expected for loop")
+        }
+    }
+
+    fn compile_for_in_loop(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::ForInLoopStatement {
+            iterator,
+            iterable,
+            body,
+        } = stmt
+        {
+            let mut compiled_for_in = String::new();
+            let mut comp_iterator = String::new();
+            let mut comp_iterable = String::new();
+
+            if let Some(iter) = iterator {
+                comp_iterator = self.compile_stmt(iter);
+            } else {
+                panic!("iterator expected");
+            }
+
+            if let Some(itera) = iterable {
+                comp_iterable = self.compile_expr(itera);
+            } else {
+                panic!("iterable expected");
+            }
+
+            compiled_for_in.push_str(&format!("for ({} in {})", comp_iterator, comp_iterable));
+            compiled_for_in.push_str(" {\n");
+
+            self.increase_indent();
+            for stmt in body {
+                let comp_stmt = self.compile_stmt(stmt);
+                compiled_for_in.push_str(&format!("{}{}\n", self.get_indent(), comp_stmt));
+            }
+            self.decrease_indent();
+
+            compiled_for_in.push_str(&format!("{}}}", self.get_indent()));
+            compiled_for_in
+        } else {
+            panic!("Expected for in expression");
         }
     }
 

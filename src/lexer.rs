@@ -19,6 +19,7 @@ pub enum TokenType {
     Else,
 
     For,
+    In,
 
     While,
 
@@ -205,7 +206,7 @@ impl<'a> Lexer<'a> {
                         }
                         self.chars.next();
                     } else {
-                        self.chars.next(); 
+                        self.chars.next();
                     }
                 }
             }
@@ -288,6 +289,7 @@ impl<'a> Lexer<'a> {
             "array" => TokenType::TypeAnnotation,
             "bool" => TokenType::TypeAnnotation,
             "for" => TokenType::For,
+            "in" => TokenType::In,
             _ => TokenType::Identifier,
         };
 

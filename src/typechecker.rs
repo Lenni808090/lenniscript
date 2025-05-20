@@ -5,6 +5,7 @@ use std::collections::HashMap;
 pub struct TypeChecker {
     scope_stack: Vec<HashMap<String, Type>>,
     function_signatures: HashMap<String, Vec<Type>>,
+    current_return_type: Option<Type>,
     js_stdlib: JsStdLib,
 }
 
@@ -62,6 +63,7 @@ impl TypeChecker {
         Self {
             scope_stack,
             function_signatures: HashMap::new(),
+            current_return_type: None,
             js_stdlib,
         }
     }
@@ -115,10 +117,12 @@ impl TypeChecker {
             Stmt::WhileStatement { .. } => self.check_while_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.check_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.check_for_in_loop(stmt),
+            Stmt::ReturnStatement { .. } => self.check_return_stmt(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
             }
+
             _ => Ok(()),
         }
     }
@@ -129,10 +133,13 @@ impl TypeChecker {
             parameters,
             param_types,
             body,
+            return_type,
         } = stmt
         {
             self.function_signatures
                 .insert(name.clone(), param_types.clone());
+
+            self.current_return_type = Some(return_type.clone());
 
             self.enter_scope();
 
@@ -145,6 +152,9 @@ impl TypeChecker {
             }
 
             self.exit_scope();
+
+            self.current_return_type = None;
+
             Ok(())
         } else {
             Err(TypeError {
@@ -321,6 +331,48 @@ impl TypeChecker {
             Err(TypeError {
                 message: "Expected for-in loop statement".to_string(),
             })
+        }
+    }
+
+    fn check_return_stmt(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::ReturnStatement { value } = stmt {
+            if let Some(expected_value_type) = self.current_return_type.clone() {
+                match value {
+                    Some(expr) => {
+                        let actual_return_type = self.infer_type(expr)?;
+
+                        if expected_value_type != actual_return_type
+                            && expected_value_type != Type::Any
+                        {
+                            return Err(TypeError {
+                                message: format!(
+                                    "Return type mismatch: expected {:?}, got {:?}",
+                                    expected_value_type, actual_return_type
+                                ),
+                            });
+                        }
+                    }
+
+                    None => {
+                        if expected_value_type != Type::Void {
+                            return Err(TypeError {
+                            message: format!(
+                                "Return type mismatch: expected {:?}, but function returns nothing (Void)",
+                                expected_value_type
+                            ),
+                        });
+                        }
+                    }
+                }
+            } else {
+                return Err(TypeError {
+                    message: "Return statement outside of function".to_string(),
+                });
+            }
+
+            Ok(())
+        } else {
+            panic!("Return statent expected")
         }
     }
 
@@ -536,8 +588,8 @@ impl TypeChecker {
                 Expr::Member {
                     object, property, ..
                 } => {
-                   if let Expr::Identifier(prop_name) = property.as_ref(){
-                       self.get_method_return_type(object, prop_name)
+                    if let Expr::Identifier(prop_name) = property.as_ref() {
+                        self.get_method_return_type(object, prop_name)
                     } else {
                         Err(TypeError {
                             message: "Property must be an identifier".to_string(),

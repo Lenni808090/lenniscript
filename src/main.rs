@@ -10,17 +10,9 @@ use std::io::Write;
 
 fn main() {
     let source = r#"
-        fn test(num1: num, num2: num){
+        fn test(num1: num, num2: num) -> num {
             let res: num = num1 + num2;
             return res;
-        }
-        let x: array<bool> = [true,false];
-        x[1] = true;
-        for(let wahr in x){
-            let i = 0;
-            x[i] = wahr;
-            i = i + 1;
-            let y: num = console.log(wahr);
         }
         
     "#;

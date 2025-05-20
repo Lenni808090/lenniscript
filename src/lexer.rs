@@ -11,6 +11,7 @@ pub enum TokenType {
     Const,
 
     Fn,
+    Arrow,
 
     True,
     False,
@@ -75,7 +76,10 @@ impl Token {
     }
 }
 
-// Using a struct with iterator instead of nested match statements
+pub fn tokenize(source_code: &str) -> Vec<Token> {
+    Lexer::new(source_code).tokenize()
+}
+
 pub struct Lexer<'a> {
     chars: std::iter::Peekable<Chars<'a>>,
     tokens: Vec<Token>,
@@ -123,10 +127,21 @@ impl<'a> Lexer<'a> {
                     self.tokens
                         .push(Token::new_static(TokenType::CloseBracket, "]", line));
                 }
-                '+' | '-' | '/' | '*' | '%' => {
+                '+' | '/' | '*' | '%' => {
                     let op = self.chars.next().unwrap();
                     self.tokens
                         .push(Token::new(TokenType::BinaryOperator, op.to_string(), line));
+                }
+                '-' => {
+                    self.chars.next();
+                    if let Some(&'>') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::Arrow, "->", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "-", line))
+                    }
                 }
                 '=' => {
                     self.chars.next();
@@ -295,9 +310,4 @@ impl<'a> Lexer<'a> {
 
         self.tokens.push(Token::new(token_type, identifier, line));
     }
-}
-
-// Keep the original function signature for compatibility
-pub fn tokenize(source_code: &str) -> Vec<Token> {
-    Lexer::new(source_code).tokenize()
 }

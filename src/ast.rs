@@ -15,6 +15,7 @@ pub enum Stmt {
         name: String,
         parameters: Vec<String>,
         param_types: Vec<Type>,
+        return_type: Type,
         body: Vec<Stmt>,
     },
     Expression(Expr),

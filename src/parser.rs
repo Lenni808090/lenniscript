@@ -24,7 +24,7 @@ impl Parser {
     }
     fn get_type(&mut self) -> Type {
         let type_token_string = self
-            .expect(TokenType::TypeAnnotation, "Type anotation after : expected")
+            .expect(TokenType::TypeAnnotation, "Type anotation after :/-> expected")
             .value;
         match type_token_string.as_str() {
             "array" => {
@@ -305,6 +305,13 @@ impl Parser {
                 panic!("Inside function declaration expected parameters to be of type string.");
             }
         }
+        let return_type: Type;
+        if self.at().token_type == TokenType::Arrow {
+            self.eat();
+            return_type = self.get_type();
+        } else {
+            return_type = Type::Void;
+        }
 
         self.expect(
             TokenType::OpenBrace,
@@ -324,6 +331,7 @@ impl Parser {
         Stmt::FunctionDeclaration {
             name,
             body,
+            return_type,
             parameters: params,
             param_types: arg_types,
         }

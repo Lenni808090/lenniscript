@@ -14,7 +14,8 @@ fn main() {
             let res: num = num1 + num2;
             return res;
         }
-        
+
+        let result: num = test(2, 4);
     "#;
 
     let mut parser = parser::Parser::new();

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 pub struct TypeChecker {
     scope_stack: Vec<HashMap<String, Type>>,
     function_signatures: HashMap<String, Vec<Type>>,
+    function_return_type: HashMap<String, Type>,
     current_return_type: Option<Type>,
     js_stdlib: JsStdLib,
 }
@@ -63,6 +64,7 @@ impl TypeChecker {
         Self {
             scope_stack,
             function_signatures: HashMap::new(),
+            function_return_type: HashMap::new(),
             current_return_type: None,
             js_stdlib,
         }
@@ -140,7 +142,8 @@ impl TypeChecker {
                 .insert(name.clone(), param_types.clone());
 
             self.current_return_type = Some(return_type.clone());
-
+            self.function_return_type
+                .insert(name.clone(), return_type.clone());
             self.enter_scope();
 
             for (param, param_type) in parameters.iter().zip(param_types.iter()) {
@@ -578,7 +581,11 @@ impl TypeChecker {
                                     });
                                 }
                             }
-                            Ok(Type::Any)
+                            if let Some(return_type) = self.function_return_type.get(fn_name) {
+                                Ok(return_type.clone())
+                            } else {
+                                Ok(Type::Any)
+                            }
                         }
                         None => Err(TypeError {
                             message: format!("Undefinierte Funktion: {}", fn_name),

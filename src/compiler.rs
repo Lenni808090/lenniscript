@@ -293,6 +293,7 @@ impl Compiler {
             Expr::ArrayLiteral { .. } => self.compile_array_literal(expr),
             Expr::Identifier(ident) => ident.clone(),
             Expr::Assignment { .. } => self.compile_assignment_expr(expr),
+            Expr::CompoundAssignment { .. } => self.compile_compound_expr(expr),
             Expr::ObjectLiteral(..) => self.compile_object_literal(expr),
             Expr::Member { .. } => self.compile_member_expr(expr),
             Expr::Call { .. } => self.compile_call_expr(expr),
@@ -349,6 +350,23 @@ impl Compiler {
             compiled_assignment
         } else {
             panic!("Expected Assignment Expresseion");
+        }
+    }
+
+    fn compile_compound_expr(&mut self, expr: &Expr) -> String {
+        if let Expr::CompoundAssignment {
+            assignee,
+            value,
+            operator,
+        } = expr
+        {
+            let compiled_assignee = self.compile_expr(assignee);
+            let compile_value = self.compile_expr(value);
+            
+            
+            format!("{} {} {}", compiled_assignee, operator, compile_value)
+        } else {
+            panic!("Compound Statement expected");
         }
     }
 

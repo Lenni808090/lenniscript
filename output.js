@@ -1,5 +1,6 @@
 function test(num1, num2) {
-    let res = [1, 2, 3, 4, 5, ]
+    num1 += 1
+    let res = (num1 + num2)
     return res
 }
 let result = test(2, 4)

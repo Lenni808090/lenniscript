@@ -11,6 +11,7 @@ use std::io::Write;
 fn main() {
     let source = r#"
         fn test(num1: num, num2: num) -> num {
+            num1 += 1;
             let res: num = num1 + num2;
             return res;
         }

@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tempfile = "3.10.1"
 clap = { version = "4.4", features = ["derive"] }
 
 [[bin]]
@@ -14,3 +13,6 @@ path = "src/bin/ls_run.rs"
 [lib]
 name = "lenniscript"
 path = "src/lib.rs"
+
+[profile.release]
+debug = true

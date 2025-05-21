@@ -50,6 +50,11 @@ pub enum Stmt {
 #[derive(Debug)]
 pub enum Expr {
     BooleanLiteral(bool),
+    CompoundAssignment {
+        assignee: Box<Expr>,
+        value: Box<Expr>,
+        operator: String,
+    },
 
     Assignment {
         assignee: Box<Expr>,

@@ -1,4 +1,5 @@
 use crate::ast;
+use crate::ast::Expr::{Binary, CompoundAssignment};
 use crate::ast::Stmt::WhileStatement;
 use crate::ast::Type::{Boolean, Number};
 use crate::ast::{ElseIfBranch, Expr, Property, Stmt, Type};
@@ -24,7 +25,10 @@ impl Parser {
     }
     fn get_type(&mut self) -> Type {
         let type_token_string = self
-            .expect(TokenType::TypeAnnotation, "Type anotation after :/-> expected")
+            .expect(
+                TokenType::TypeAnnotation,
+                "Type anotation after :/-> expected",
+            )
             .value;
         match type_token_string.as_str() {
             "array" => {
@@ -444,11 +448,32 @@ impl Parser {
         let mut left = self.parse_object_expr();
 
         if (self.at().token_type == TokenType::Equals) {
-            self.eat();
-            let value = self.parse_assignment_expr();
-            left = Expr::Assignment {
-                assignee: Box::new(left),
-                value: Box::new(value),
+            match &left {
+                Expr::Identifier(_) | Expr::Member { .. } => {
+                    self.eat();
+                    let value = self.parse_assignment_expr();
+                    left = Expr::Assignment {
+                        assignee: Box::new(left),
+                        value: Box::new(value),
+                    }
+                }
+                _ => panic!("Invalid left-hand side in assignment expression"),
+            }
+        } else if self.at().token_type == TokenType::BinaryOperator {
+            let operator = self.eat().value;
+            if operator == "+=" || operator == "-=" {
+                match &left {
+                    Expr::Identifier(_) | Expr::Member { .. } => {
+                        let value = self.parse_expr();
+                        left = CompoundAssignment {
+                            assignee: Box::new(left),
+                            value: Box::new(value),
+                            operator,
+                        }
+                    }
+
+                    _ => panic!("Invalid left-hand side in assignment expression"),
+                }
             }
         }
 

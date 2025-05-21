@@ -127,10 +127,21 @@ impl<'a> Lexer<'a> {
                     self.tokens
                         .push(Token::new_static(TokenType::CloseBracket, "]", line));
                 }
-                '+' | '/' | '*' | '%' => {
+                '/' | '*' | '%' => {
                     let op = self.chars.next().unwrap();
                     self.tokens
                         .push(Token::new(TokenType::BinaryOperator, op.to_string(), line));
+                }
+                '+' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "+=", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "+", line));
+                    }
                 }
                 '-' => {
                     self.chars.next();
@@ -138,6 +149,9 @@ impl<'a> Lexer<'a> {
                         self.chars.next();
                         self.tokens
                             .push(Token::new_static(TokenType::Arrow, "->", line));
+                    } else if let Some(&'=') = self.chars.peek() {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "-=", line));
                     } else {
                         self.tokens
                             .push(Token::new_static(TokenType::BinaryOperator, "-", line))

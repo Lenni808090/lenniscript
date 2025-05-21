@@ -30,6 +30,7 @@ pub enum TokenType {
     LessThenEquals,
     EqualsEquals,
     NotEquals,
+    Increment,
 
     BinaryOperator,
     Equals,
@@ -287,6 +288,10 @@ impl<'a> Lexer<'a> {
                         self.chars.next();
                         self.tokens
                             .push(Token::new_static(TokenType::BinaryOperator, "+=", line));
+                    } else if let Some(&'+') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::Increment, "++", line));
                     } else {
                         self.tokens
                             .push(Token::new_static(TokenType::BinaryOperator, "+", line));

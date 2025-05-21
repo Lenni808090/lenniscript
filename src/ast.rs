@@ -56,6 +56,11 @@ pub enum Expr {
         operator: String,
     },
 
+    Increment {
+        identifier: Box<Expr>,
+        prefix: bool,
+    },
+
     Assignment {
         assignee: Box<Expr>,
         value: Box<Expr>,

@@ -461,7 +461,12 @@ impl Parser {
             }
         } else if self.at().token_type == TokenType::BinaryOperator {
             let operator = self.eat().value;
-            if operator == "+=" || operator == "-=" || operator == "*=" || operator == "%="|| operator == "/="{
+            if operator == "+="
+                || operator == "-="
+                || operator == "*="
+                || operator == "%="
+                || operator == "/="
+            {
                 match &left {
                     Expr::Identifier(_) | Expr::Member { .. } => {
                         let value = self.parse_expr();
@@ -706,10 +711,32 @@ impl Parser {
                 let token = self.eat();
                 Expr::BooleanLiteral(false)
             }
+            TokenType::Increment => {
+                self.eat();
+                let identifier = self
+                    .expect(
+                        TokenType::Identifier,
+                        "Identifier after Increment exprected",
+                    )
+                    .value;
+
+                Expr::Increment {
+                    identifier: Box::new(Expr::Identifier(identifier)),
+                    prefix: true,
+                }
+            }
             TokenType::Identifier => {
-                let token = self.eat();
+                let token = self.eat(); // Consumes 'i'
                 let name = token.value;
-                Expr::Identifier(name)
+                if self.at().token_type == TokenType::Increment {
+                    self.eat();
+                    Expr::Increment {
+                        identifier: Box::new(Expr::Identifier(name)),
+                        prefix: false,
+                    }
+                } else {
+                    Expr::Identifier(name)
+                }
             }
             TokenType::OpenBracket => {
                 self.eat();

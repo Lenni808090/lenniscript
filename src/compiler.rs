@@ -7,6 +7,20 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    fn get_indent(&self) -> String {
+        "    ".repeat(self.indent_level)
+    }
+
+    fn increase_indent(&mut self) {
+        self.indent_level += 1;
+    }
+
+    fn decrease_indent(&mut self) {
+        if self.indent_level > 0 {
+            self.indent_level -= 1;
+        }
+    }
+
     pub fn new() -> Self {
         Compiler {
             output: String::new(),
@@ -297,6 +311,7 @@ impl Compiler {
             Expr::ObjectLiteral(..) => self.compile_object_literal(expr),
             Expr::Member { .. } => self.compile_member_expr(expr),
             Expr::Call { .. } => self.compile_call_expr(expr),
+            Expr::Increment { .. } => self.compile_increment_expr(expr),
             _ => {
                 panic!("expression not implemented {:?}", expr);
             }
@@ -362,8 +377,7 @@ impl Compiler {
         {
             let compiled_assignee = self.compile_expr(assignee);
             let compile_value = self.compile_expr(value);
-            
-            
+
             format!("{} {} {}", compiled_assignee, operator, compile_value)
         } else {
             panic!("Compound Statement expected");
@@ -436,17 +450,16 @@ impl Compiler {
         }
     }
 
-    fn get_indent(&self) -> String {
-        "    ".repeat(self.indent_level)
-    }
-
-    fn increase_indent(&mut self) {
-        self.indent_level += 1;
-    }
-
-    fn decrease_indent(&mut self) {
-        if self.indent_level > 0 {
-            self.indent_level -= 1;
+    fn compile_increment_expr(&mut self, expr: &Expr) -> String {
+        if let Expr::Increment { identifier, prefix } = expr {
+            let compiled_identifier = self.compile_expr(identifier);
+            if *prefix {
+                format!("++{}", compiled_identifier)
+            } else {
+                format!("{}++", compiled_identifier)
+            }
+        }else { 
+            panic!("Expected increment expression")
         }
     }
 }

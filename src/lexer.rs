@@ -127,35 +127,8 @@ impl<'a> Lexer<'a> {
                     self.tokens
                         .push(Token::new_static(TokenType::CloseBracket, "]", line));
                 }
-                '/' | '*' | '%' => {
-                    let op = self.chars.next().unwrap();
-                    self.tokens
-                        .push(Token::new(TokenType::BinaryOperator, op.to_string(), line));
-                }
-                '+' => {
-                    self.chars.next();
-                    if let Some(&'=') = self.chars.peek() {
-                        self.chars.next();
-                        self.tokens
-                            .push(Token::new_static(TokenType::BinaryOperator, "+=", line));
-                    } else {
-                        self.tokens
-                            .push(Token::new_static(TokenType::BinaryOperator, "+", line));
-                    }
-                }
-                '-' => {
-                    self.chars.next();
-                    if let Some(&'>') = self.chars.peek() {
-                        self.chars.next();
-                        self.tokens
-                            .push(Token::new_static(TokenType::Arrow, "->", line));
-                    } else if let Some(&'=') = self.chars.peek() {
-                        self.tokens
-                            .push(Token::new_static(TokenType::BinaryOperator, "-=", line));
-                    } else {
-                        self.tokens
-                            .push(Token::new_static(TokenType::BinaryOperator, "-", line))
-                    }
+                '/' | '*' | '%' | '-' | '+' => {
+                    self.get_operatator(line);
                 }
                 '=' => {
                     self.chars.next();
@@ -289,6 +262,72 @@ impl<'a> Lexer<'a> {
 
         self.tokens
             .push(Token::new(TokenType::_Number, number, line));
+    }
+
+    fn get_operatator(&mut self, line: u32) {
+        if let Some(&c) = self.chars.peek() {
+            match c {
+                '-' => {
+                    self.chars.next();
+                    if let Some(&'>') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::Arrow, "->", line));
+                    } else if let Some(&'=') = self.chars.peek() {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "-=", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "-", line))
+                    }
+                }
+                '+' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "+=", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "+", line));
+                    }
+                }
+                '/' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "/=", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "/", line));
+                    }
+                }
+                '%' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "%=", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "%", line));
+                    }
+                }
+                '*' => {
+                    self.chars.next();
+                    if let Some(&'=') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "*=", line));
+                    } else {
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "*", line));
+                    }
+                }
+                _ => panic!("Unknown typa beat"),
+            }
+        }
     }
 
     fn tokenize_identifier(&mut self, line: u32) {

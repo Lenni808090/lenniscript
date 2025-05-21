@@ -406,6 +406,39 @@ impl TypeChecker {
                 Ok(Type::Any)
             }
 
+            Expr::CompoundAssignment {
+                assignee,
+                value,
+                operator,
+            } => {
+                let assignee_type = self.infer_type(assignee)?;
+                let value_type = self.infer_type(value)?;
+
+                if operator != "+=" && (assignee_type == Type::String || value_type == Type::String)
+                {
+                    return Err(TypeError {
+                        message: format!(
+                            "Cannot use operator '{}' with a string value/assignee. Only '+=' is allowed for string concatenation.",
+                            operator
+                        ),
+                    });
+                }
+
+                let binary_expr = Expr::Binary {
+                    left: Box::new((**assignee).clone()),
+                    right: Box::new((**value).clone()),
+                    operator: operator.clone().replace("=", ""),
+                };
+
+                let new_expr = Expr::Assignment {
+                    assignee: Box::new((**assignee).clone()),
+                    value: Box::new(binary_expr),
+                };
+
+                self.check_assignment(&new_expr)?;
+                Ok(Type::Any)
+            }
+
             Expr::Binary {
                 left,
                 right,
@@ -414,18 +447,44 @@ impl TypeChecker {
                 let left_type = self.infer_type(left)?;
                 let right_type = self.infer_type(right)?;
 
+                let both_numbers = left_type == Type::Number && right_type == Type::Number;
+                let left_is_string = left_type == Type::String;
+                let right_is_string = right_type == Type::String;
+
                 match operator.as_str() {
-                    "+" | "-" | "*" | "/" => {
-                        if left_type == Type::Number && right_type == Type::Number {
+                    "+" => {
+                        if both_numbers {
                             Ok(Type::Number)
+                        } else if left_is_string || right_is_string {
+                            Ok(Type::String)
                         } else {
                             Err(TypeError {
-                                message: "Arithmetic operations require number types".to_string(),
+                                message: format!(
+                                    "Operator '+' kann nicht auf die Typen {:?} und {:?} angewendet werden. Erlaubt für Zahl + Zahl oder String + (String/Zahl).",
+                                    left_type, right_type
+                                ),
                             })
                         }
                     }
+
+                    "-" | "*" | "/" => {
+                        if both_numbers {
+                            Ok(Type::Number)
+                        } else {
+                            Err(TypeError {
+                                message: format!(
+                                    "Arithmetischer Operator '{}' erfordert Zahlentypen, aber {:?} und {:?} wurden empfangen.",
+                                    operator, left_type, right_type
+                                ),
+                            })
+                        }
+                    }
+
                     "==" | "!=" | "<" | ">" | "<=" | ">=" => Ok(Type::Boolean),
-                    _ => Ok(Type::Any),
+
+                    _ => Err(TypeError {
+                        message: format!("Unbekannter Operator '{}'", operator),
+                    }),
                 }
             }
 
@@ -435,89 +494,22 @@ impl TypeChecker {
 
     fn check_assignment(&mut self, expr: &Expr) -> Result<(), TypeError> {
         if let Expr::Assignment { assignee, value } = expr {
-            if let Expr::Member {
-                object,
-                computed,
-                property,
-            } = assignee.as_ref()
-            {
-                let object_type = self.infer_type(object)?;
-                match object_type {
-                    Type::Array(element_type) => {
-                        if *computed {
-                            let index_type = self.infer_type(property)?;
-                            if index_type != Type::Number {
-                                return Err(TypeError {
-                                    message: "Array index must be a number".to_string(),
-                                });
-                            }
-                            let value_type = self.infer_type(value)?;
-                            if value_type != *element_type && *element_type != Type::Any {
-                                return Err(TypeError {
-                                    message: format!(
-                                        "Cannot assign value of type {:?} to array of type {:?}",
-                                        value_type, element_type
-                                    ),
-                                });
-                            }
-                            return Ok(());
-                        }
-                    }
-                    Type::Object(properties) => {
-                        if let Expr::Identifier(prop_name) = property.as_ref() {
-                            if let Some(expected_type) = properties.get(prop_name) {
-                                let value_type = self.infer_type(value)?;
+            let target_type = self.infer_type(assignee)?;
+            let value_type = self.infer_type(value)?;
 
-                                if *expected_type != value_type && *expected_type != Type::Any {
-                                    return Err(TypeError {
-                                        message: format!(
-                                            "Property '{}' expected type {:?}, but got {:?}",
-                                            prop_name, expected_type, value_type
-                                        ),
-                                    });
-                                }
-                                return Ok(());
-                            } else {
-                                return Err(TypeError {
-                                    message: format!(
-                                        "Property '{}' does not exist on this object",
-                                        prop_name
-                                    ),
-                                });
-                            }
-                        } else {
-                            return Err(TypeError {
-                                message: format!("Cannot access property on non-object type "),
-                            });
-                        }
-                    }
-                    _ => {
-                        return Err(TypeError {
-                            message: format!(
-                                "Cannot assign to non-object type: {:?}",
-                                &object_type
-                            ),
-                        });
-                    }
-                }
-            } else {
-                let target_type = self.infer_type(assignee)?;
-                let value_type = self.infer_type(value)?;
-
-                if target_type != value_type && target_type != Type::Any {
-                    return Err(TypeError {
-                        message: format!(
-                            "Ungültige Zuweisung Erwartet {:?}, aber erhielt {:?}",
-                            target_type, value_type
-                        ),
-                    });
-                }
+            if target_type != value_type && target_type != Type::Any {
+                return Err(TypeError {
+                    message: format!(
+                        "Ungültige Zuweisung Erwartet {:?}, aber erhielt {:?}",
+                        target_type, value_type
+                    ),
+                });
             }
+
+            Ok(())
         } else {
             panic!("assignment expected");
         }
-
-        Ok(())
     }
 
     fn check_array_literal(&mut self, expr: &Expr) -> Result<Type, TypeError> {

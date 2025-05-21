@@ -47,7 +47,7 @@ pub enum Stmt {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     BooleanLiteral(bool),
     CompoundAssignment {
@@ -95,7 +95,7 @@ pub struct ElseIfBranch {
     pub condition: Expr,
     pub body: Vec<Stmt>,
 }
-
+#[derive(Clone)]
 #[derive(Debug)]
 pub struct Property {
     pub key: String,

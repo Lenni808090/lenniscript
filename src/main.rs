@@ -17,6 +17,11 @@ fn main() {
         }
 
         let result: num = test(2, 4);
+        let stri = {
+            str: "hi"
+        };
+        let array1: array<num> = [1,1,2,2];
+        result = array1[2];
     "#;
 
     let mut parser = parser::Parser::new();

@@ -461,7 +461,7 @@ impl Parser {
             }
         } else if self.at().token_type == TokenType::BinaryOperator {
             let operator = self.eat().value;
-            if operator == "+=" || operator == "-=" {
+            if operator == "+=" || operator == "-=" || operator == "*=" || operator == "%="|| operator == "/="{
                 match &left {
                     Expr::Identifier(_) | Expr::Member { .. } => {
                         let value = self.parse_expr();

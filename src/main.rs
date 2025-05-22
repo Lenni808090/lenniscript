@@ -14,7 +14,7 @@ fn main() {
                 num1 += 1;
                 let res: num = num1 + num2;
                 return res;
-                for(let i = 0; i < 10; i++) {
+                for(let i = 0; i < 10; ++i) {
                     console.log("hi");
                 }
             }

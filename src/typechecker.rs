@@ -436,6 +436,11 @@ impl TypeChecker {
                 Ok(Type::Any)
             }
 
+            Expr::Increment { .. } => {
+                self.check_increment(expr)?;
+                Ok(Type::Any)
+            }
+
             Expr::CompoundAssignment {
                 assignee,
                 value,
@@ -539,6 +544,20 @@ impl TypeChecker {
             Ok(())
         } else {
             panic!("assignment expected");
+        }
+    }
+
+    fn check_increment(&mut self, expr: &Expr) -> Result<Type, TypeError> {
+        if let Expr::Increment { identifier, prefix } = expr {
+            let identifier_type = self.infer_type(identifier)?;
+            if identifier_type != Type::Number {
+                return Err(TypeError {
+                    message: "can call increwment only on type number".to_string(),
+                });
+            }
+            Ok(Type::Number)
+        } else {
+            panic!("Expected Increment expr")
         }
     }
 

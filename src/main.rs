@@ -10,14 +10,20 @@ use std::io::Write;
 
 fn main() {
     let source = r#"
-            fn test(num1: num, num2: num) -> num {
-                num1 += 1;
-                let res: num = num1 + num2;
-                return res;
-                for(let i = 0; i < 10; ++i) {
-                    console.log("hi");
-                }
+        fn test(num1: num, num2: num) -> num {
+            num1 += 1;
+            let res: num = num1 + num2;
+            return res;
+            for(let i = 0; i < 10; ++i) {
+                console.log("hi");
             }
+        }
+         let x = 2;
+         let y = 3;
+         if(x == y || x != y){
+            console.log(x,y);
+         }
+
 
         let result: num = test(2, 4);
         let stri = {

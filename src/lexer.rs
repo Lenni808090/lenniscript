@@ -30,10 +30,10 @@ pub enum TokenType {
     LessThenEquals,
     EqualsEquals,
     NotEquals,
-    Increment,
 
     BinaryOperator,
     Equals,
+    Increment,
 
     Comma,
     Dot,
@@ -128,7 +128,7 @@ impl<'a> Lexer<'a> {
                     self.tokens
                         .push(Token::new_static(TokenType::CloseBracket, "]", line));
                 }
-                '/' | '*' | '%' | '-' | '+' => {
+                '/' | '*' | '%' | '-' | '+' | '|' | '&' => {
                     self.get_operatator(line);
                 }
                 '=' => {
@@ -328,6 +328,26 @@ impl<'a> Lexer<'a> {
                     } else {
                         self.tokens
                             .push(Token::new_static(TokenType::BinaryOperator, "*", line));
+                    }
+                }
+                '|' => {
+                    self.chars.next();
+                    if let Some(&'|') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "||", line));
+                    } else {
+                        panic!("Unknown symbol");
+                    }
+                }
+                '&' => {
+                    self.chars.next();
+                    if let Some(&'&') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::BinaryOperator, "&&", line));
+                    } else {
+                        panic!("Unknown symbol");
                     }
                 }
                 _ => panic!("Unknown typa beat"),

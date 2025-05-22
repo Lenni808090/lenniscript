@@ -487,7 +487,7 @@ impl Parser {
 
     fn parse_object_expr(&mut self) -> Expr {
         if self.at().token_type != TokenType::OpenBrace {
-            return self.parse_comparison_expr();
+            return self.parse_logic_expr();
         }
 
         self.eat();
@@ -531,7 +531,22 @@ impl Parser {
         );
         Expr::ObjectLiteral(properties)
     }
+    fn parse_logic_expr(&mut self) -> Expr {
+        let mut left = self.parse_comparison_expr();
 
+        while self.at().value == "&&" || self.at().value == "||" {
+            let operator = self.eat().value;
+            let right = self.parse_comparison_expr();
+
+            left = Expr::Binary {
+                left: Box::new(left),
+                right: Box::new(right),
+                operator,
+            }
+        }
+
+        left
+    }
     fn parse_comparison_expr(&mut self) -> Expr {
         let mut left = self.parse_additive_expr();
 

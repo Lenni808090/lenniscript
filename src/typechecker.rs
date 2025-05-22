@@ -515,7 +515,7 @@ impl TypeChecker {
                         }
                     }
 
-                    "==" | "!=" | "<" | ">" | "<=" | ">=" => Ok(Type::Boolean),
+                    "==" | "!=" | "<" | ">" | "<=" | ">=" | "||" | "&&" => Ok(Type::Boolean),
 
                     _ => Err(TypeError {
                         message: format!("Unbekannter Operator '{}'", operator),

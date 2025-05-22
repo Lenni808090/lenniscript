@@ -6,6 +6,11 @@ function test(num1, num2) {
         console.log("hi")
     }
 }
+let x = 2
+let y = 3
+if (((x == y) || (x != y))) {
+    console.log(x, y)
+}
 let result = test(2, 4)
 let stri = {str: "hi"}
 let array1 = [1, 1, 2, 2, ]

@@ -1,3 +1,4 @@
+use crate::ast::Type::Null;
 use std::str::Chars;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -15,6 +16,8 @@ pub enum TokenType {
 
     True,
     False,
+
+    Null,
 
     If,
     Else,
@@ -43,6 +46,7 @@ pub enum TokenType {
     Dot,
     Colon,
     Semicolon,
+    Question,
 
     OpenParen,
     CloseParen,
@@ -134,6 +138,11 @@ impl<'a> Lexer<'a> {
                 }
                 '/' | '*' | '%' | '-' | '+' | '|' | '&' => {
                     self.get_operatator(line);
+                }
+                '?' => {
+                    self.chars.next();
+                    self.tokens
+                        .push(Token::new_static(TokenType::Question, "?", line));
                 }
                 '=' => {
                     self.chars.next();
@@ -323,6 +332,7 @@ impl<'a> Lexer<'a> {
                             .push(Token::new_static(TokenType::BinaryOperator, "%", line));
                     }
                 }
+
                 '*' => {
                     self.chars.next();
                     if let Some(&'=') = self.chars.peek() {
@@ -381,6 +391,7 @@ impl<'a> Lexer<'a> {
             "fn" => TokenType::Fn,
             "true" => TokenType::True,
             "false" => TokenType::False,
+            "null" => TokenType::Null,
             "string" | "num" | "array" | "bool" => TokenType::TypeAnnotation,
             "for" => TokenType::For,
             "in" => TokenType::In,

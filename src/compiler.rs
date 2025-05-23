@@ -309,7 +309,7 @@ impl Compiler {
             let mut compiled_try = String::new();
             compiled_try.push_str("try {");
             compiled_try.push('\n');
-            
+
             self.increase_indent();
             for stmt in try_branch {
                 let comp_stmt = self.compile_stmt(stmt);
@@ -317,11 +317,11 @@ impl Compiler {
                 compiled_try.push('\n');
             }
             self.decrease_indent();
-            
+
             compiled_try.push_str(&format!("{}}}", self.get_indent()));
             compiled_try.push_str(" catch {");
             compiled_try.push('\n');
-            
+
             self.increase_indent();
             for stmt in catch_branch {
                 let comp_stmt = self.compile_stmt(stmt);
@@ -334,7 +334,7 @@ impl Compiler {
                 compiled_try.push_str(&format!("{}}}", self.get_indent()));
                 compiled_try.push_str(" finally {");
                 compiled_try.push('\n');
-                
+
                 self.increase_indent();
                 for stmt in finally_branch {
                     let comp_stmt = self.compile_stmt(stmt);
@@ -343,7 +343,7 @@ impl Compiler {
                 }
                 self.decrease_indent();
             }
-            
+
             compiled_try.push_str(&format!("{}}}", self.get_indent()));
             compiled_try
         } else {
@@ -356,6 +356,7 @@ impl Compiler {
             Expr::Binary { .. } => self.compile_binary_expr(expr),
             Expr::NumericLiteral(val) => val.to_string(),
             Expr::BooleanLiteral(bool) => bool.to_string(),
+            Expr::NullLiteral => "null".to_string(),
             Expr::StringLiteral(string_literal) => format!("\"{}\"", string_literal),
             Expr::ArrayLiteral { .. } => self.compile_array_literal(expr),
             Expr::Identifier(ident) => ident.clone(),

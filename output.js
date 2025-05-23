@@ -12,6 +12,9 @@ function test(num1, num2) {
         console.log("clean up")
     }
 }
+let test = "hihih"
+test = "hi"
+test = null
 let x = 2
 let y = 3
 if (((x == y) || (x != y))) {

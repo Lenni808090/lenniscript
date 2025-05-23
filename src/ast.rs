@@ -56,6 +56,7 @@ pub enum Stmt {
 #[derive(Debug, Clone)]
 pub enum Expr {
     BooleanLiteral(bool),
+    NullLiteral,
     CompoundAssignment {
         assignee: Box<Expr>,
         value: Box<Expr>,
@@ -98,6 +99,8 @@ pub enum Type {
     Boolean,
     Array(Box<Type>),
     Object(HashMap<String, Type>),
+    Option(Box<Type>),
+    Null,
     Any,
     Void,
 }

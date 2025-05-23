@@ -30,7 +30,7 @@ impl Parser {
                 "Type anotation after :/-> expected",
             )
             .value;
-        match type_token_string.as_str() {
+        let var_type = match type_token_string.as_str() {
             "array" => {
                 self.expect(TokenType::LessThen, "Expected less then after array ");
                 let type_array_string = self
@@ -75,6 +75,13 @@ impl Parser {
             _ => {
                 panic!("Error in get type");
             }
+        };
+
+        if self.at().token_type == TokenType::Question {
+            self.eat();
+            Type::Option(Box::new(var_type))
+        } else {
+            var_type
         }
     }
     fn at(&self) -> &Token {
@@ -777,6 +784,10 @@ impl Parser {
             TokenType::False => {
                 let token = self.eat();
                 Expr::BooleanLiteral(false)
+            }
+            TokenType::Null => {
+                let token = self.eat();
+                Expr::NullLiteral
             }
             TokenType::Increment => {
                 self.eat();

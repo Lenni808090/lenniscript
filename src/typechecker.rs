@@ -1,6 +1,8 @@
 use crate::ast::{Expr, Stmt, Type};
 use crate::js_stdlib::JsStdLib;
 use std::collections::HashMap;
+use std::fmt::format;
+use std::ptr::null;
 
 pub struct TypeChecker {
     scope_stack: Vec<HashMap<String, Type>>,
@@ -39,6 +41,20 @@ impl TypeChecker {
             }
         }
         None
+    }
+
+    fn matching_types(&self, target_type: &Type, value_type: &Type) -> bool {
+        if target_type == value_type || *target_type == Type::Any {
+            return true
+        }
+
+        if let Type::Option(inner_type) = &target_type {
+            if *value_type == **inner_type || *value_type == Type::Null {
+                return true
+            }
+        }
+        
+        false
     }
 
     fn get_method_return_type(
@@ -142,26 +158,25 @@ impl TypeChecker {
             identifier,
             value: Some(value),
             var_type,
-            constant,
+            ..
         } = stmt
         {
             let expr_type = self.infer_type(value)?;
-            if *var_type != expr_type && *var_type != Type::Any {
-                return Err(TypeError {
-                    message: format!(
-                        "Type conflict: expected {:?}, got {:?}",
-                        var_type, expr_type
-                    ),
-                });
-            }
 
             let final_type = if *var_type == Type::Any {
                 expr_type.clone()
             } else {
                 var_type.clone()
             };
-            self.declare_variable(identifier.clone(), final_type);
-            Ok(())
+
+            if self.matching_types(var_type, &expr_type) {
+                self.declare_variable(identifier.clone(), final_type);
+                Ok(())
+            } else {
+                return Err(TypeError {
+                    message: format!("Expected {:?} got {:?}", var_type, &expr_type),
+                });
+            }
         } else {
             panic!("Var declaration expected")
         }
@@ -197,9 +212,7 @@ impl TypeChecker {
 
             Ok(())
         } else {
-            Err(TypeError {
-                message: "Expected function declaration".to_string(),
-            })
+            panic!("function declaration expected")
         }
     }
 
@@ -373,26 +386,23 @@ impl TypeChecker {
                     Some(expr) => {
                         let actual_return_type = self.infer_type(expr)?;
 
-                        if expected_value_type != actual_return_type
-                            && expected_value_type != Type::Any
-                        {
+                        if !self.matching_types(&expected_value_type, &actual_return_type) {
                             return Err(TypeError {
                                 message: format!(
-                                    "Return type mismatch: expected {:?}, got {:?}",
+                                    "Return type mismatch: expected {:?}, but got {:?}",
                                     expected_value_type, actual_return_type
                                 ),
-                            });
+                            }); 
                         }
                     }
-
                     None => {
                         if expected_value_type != Type::Void {
                             return Err(TypeError {
-                            message: format!(
-                                "Return type mismatch: expected {:?}, but function returns nothing (Void)",
-                                expected_value_type
-                            ),
-                        });
+                                message: format!(
+                                    "Return type mismatch: expected {:?}, but function returns nothing (Void)",
+                                    expected_value_type
+                                ),
+                            });
                         }
                     }
                 }
@@ -438,6 +448,7 @@ impl TypeChecker {
             Expr::NumericLiteral(_) => Ok(Type::Number),
             Expr::StringLiteral(_) => Ok(Type::String),
             Expr::BooleanLiteral(_) => Ok(Type::Boolean),
+            Expr::NullLiteral => Ok(Type::Null),
             Expr::Identifier(name) => {
                 if let Some(var_type) = self.lookup_variable(name).cloned() {
                     Ok(var_type)
@@ -556,16 +567,13 @@ impl TypeChecker {
             let target_type = self.infer_type(assignee)?;
             let value_type = self.infer_type(value)?;
 
-            if target_type != value_type && target_type != Type::Any {
+            if self.matching_types(&target_type, &value_type) {
+                Ok(())
+            } else {
                 return Err(TypeError {
-                    message: format!(
-                        "Ungültige Zuweisung Erwartet {:?}, aber erhielt {:?}",
-                        target_type, value_type
-                    ),
+                    message: format!("Expected {:?} got {:?}", target_type, value_type),
                 });
             }
-
-            Ok(())
         } else {
             panic!("assignment expected");
         }

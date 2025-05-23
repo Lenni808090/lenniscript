@@ -308,24 +308,43 @@ impl Compiler {
         {
             let mut compiled_try = String::new();
             compiled_try.push_str("try {");
+            compiled_try.push('\n');
+            
+            self.increase_indent();
             for stmt in try_branch {
                 let comp_stmt = self.compile_stmt(stmt);
-                compiled_try.push_str(&format!("{} \n", comp_stmt));
+                compiled_try.push_str(&format!("{}{}", self.get_indent(), comp_stmt));
+                compiled_try.push('\n');
             }
-            compiled_try.push_str("} \n catch {");
+            self.decrease_indent();
+            
+            compiled_try.push_str(&format!("{}}}", self.get_indent()));
+            compiled_try.push_str(" catch {");
+            compiled_try.push('\n');
+            
+            self.increase_indent();
             for stmt in catch_branch {
                 let comp_stmt = self.compile_stmt(stmt);
-                compiled_try.push_str(&format!("{} \n", comp_stmt));
+                compiled_try.push_str(&format!("{}{}", self.get_indent(), comp_stmt));
+                compiled_try.push('\n');
             }
+            self.decrease_indent();
 
             if let Some(finally_branch) = finally_branch {
-                compiled_try.push_str("} \n finally {");
+                compiled_try.push_str(&format!("{}}}", self.get_indent()));
+                compiled_try.push_str(" finally {");
+                compiled_try.push('\n');
+                
+                self.increase_indent();
                 for stmt in finally_branch {
                     let comp_stmt = self.compile_stmt(stmt);
-                    compiled_try.push_str(&format!("{} \n", comp_stmt));
+                    compiled_try.push_str(&format!("{}{}", self.get_indent(), comp_stmt));
+                    compiled_try.push('\n');
                 }
+                self.decrease_indent();
             }
-            compiled_try.push('}');
+            
+            compiled_try.push_str(&format!("{}}}", self.get_indent()));
             compiled_try
         } else {
             panic!("expected try catch stmt");

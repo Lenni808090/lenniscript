@@ -1,13 +1,16 @@
 function test(num1, num2) {
-    try {num1 += 1 
-let res = (num1 + num2) 
-return res 
-for (let i = 0; (i < 10); ++i) {
-        console.log("hi")
-    } 
-} 
- catch {console.log("ERROR") 
-}
+    try {
+        num1 += 1
+        let res = (num1 + num2)
+        return res
+        for (let i = 0; (i < 10); ++i) {
+            console.log("hi")
+        }
+    } catch {
+        console.log("ERROR")
+    } finally {
+        console.log("clean up")
+    }
 }
 let x = 2
 let y = 3

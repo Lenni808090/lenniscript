@@ -20,8 +20,11 @@ fn main() {
                     console.log("hi");
                 }
             }
-            catch{
+            catch {
                 console.log("ERROR");
+            }
+            finally {
+                console.log("clean up");
             }
         }
          let x = 2;

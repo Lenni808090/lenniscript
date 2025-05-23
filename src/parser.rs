@@ -371,6 +371,7 @@ impl Parser {
         let mut finally_branch: Option<Vec<Stmt>> = None;
 
         if self.at().token_type == TokenType::Finally {
+            self.eat();
             let mut finally_body = Vec::new();
             self.expect(TokenType::OpenBrace, "Open Brace Expected after finally");
 

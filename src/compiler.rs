@@ -49,6 +49,7 @@ impl Compiler {
             Stmt::FunctionDeclaration { .. } => self.compile_fun_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.compile_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.compile_for_in_loop(stmt),
+            Stmt::TryCatchFinally { .. } => self.compile_try_catch_stmt(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");
@@ -298,6 +299,39 @@ impl Compiler {
         }
     }
 
+    fn compile_try_catch_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::TryCatchFinally {
+            try_branch,
+            catch_branch,
+            finally_branch,
+        } = stmt
+        {
+            let mut compiled_try = String::new();
+            compiled_try.push_str("try {");
+            for stmt in try_branch {
+                let comp_stmt = self.compile_stmt(stmt);
+                compiled_try.push_str(&format!("{} \n", comp_stmt));
+            }
+            compiled_try.push_str("} \n catch {");
+            for stmt in catch_branch {
+                let comp_stmt = self.compile_stmt(stmt);
+                compiled_try.push_str(&format!("{} \n", comp_stmt));
+            }
+
+            if let Some(finally_branch) = finally_branch {
+                compiled_try.push_str("} \n finally {");
+                for stmt in finally_branch {
+                    let comp_stmt = self.compile_stmt(stmt);
+                    compiled_try.push_str(&format!("{} \n", comp_stmt));
+                }
+            }
+            compiled_try.push('}');
+            compiled_try
+        } else {
+            panic!("expected try catch stmt");
+        }
+    }
+
     fn compile_expr(&mut self, expr: &Expr) -> String {
         match expr {
             Expr::Binary { .. } => self.compile_binary_expr(expr),
@@ -458,7 +492,7 @@ impl Compiler {
             } else {
                 format!("{}++", compiled_identifier)
             }
-        }else { 
+        } else {
             panic!("Expected increment expression")
         }
     }

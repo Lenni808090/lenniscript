@@ -339,12 +339,7 @@ impl TypeChecker {
             };
 
             if let Some(iter) = iterator {
-                if let Stmt::VarDeclaration {
-                    identifier,
-                    var_type,
-                    ..
-                } = iter.as_ref()
-                {
+                if let Stmt::VarDeclaration { identifier, .. } = iter.as_ref() {
                     self.declare_variable(identifier.clone(), element_type.clone());
                 } else {
                     self.check_statement(iter)?;

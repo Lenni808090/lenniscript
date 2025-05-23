@@ -121,6 +121,8 @@ impl Parser {
 
             TokenType::Fn => self.parse_fn_declaration(),
 
+            TokenType::Try => self.parse_try_catch_stmt(),
+
             TokenType::For => self.parse_for_statement(),
 
             _ => {
@@ -159,10 +161,10 @@ impl Parser {
         let mut else_branch: Option<Vec<Stmt>> = None;
 
         while self.at().token_type == TokenType::Else {
-            self.eat(); // eat the `else`
+            self.eat();
 
             if self.at().token_type == TokenType::If {
-                self.eat(); // eat the `if`
+                self.eat();
                 self.expect(TokenType::OpenParen, "Expect Open Paren after else if");
                 let else_if_condition = self.parse_expr();
                 self.expect(
@@ -198,7 +200,7 @@ impl Parser {
                     "Expected Closing Brace after else body",
                 );
                 else_branch = Some(else_body);
-                break; // no more else or else-if allowed after `else`
+                break;
             }
         }
 
@@ -338,6 +340,55 @@ impl Parser {
             return_type,
             parameters: params,
             param_types: arg_types,
+        }
+    }
+
+    fn parse_try_catch_stmt(&mut self) -> Stmt {
+        self.eat();
+        self.expect(TokenType::OpenBrace, "Open Brace Expected after try");
+
+        let mut try_branch = Vec::new();
+        while self.not_eof() && self.at().token_type != TokenType::CloseBrace {
+            try_branch.push(self.parse_stmt());
+        }
+        self.expect(
+            TokenType::CloseBrace,
+            "CLosing Brace after try body Expected",
+        );
+
+        self.expect(TokenType::Catch, "Catch stmt expected after try stmt");
+        self.expect(TokenType::OpenBrace, "Open Brace Expected after catch");
+
+        let mut catch_branch = Vec::new();
+        while self.not_eof() && self.at().token_type != TokenType::CloseBrace {
+            catch_branch.push(self.parse_stmt());
+        }
+        self.expect(
+            TokenType::CloseBrace,
+            "Closing Brace after catch body Expected",
+        );
+
+        let mut finally_branch: Option<Vec<Stmt>> = None;
+
+        if self.at().token_type == TokenType::Finally {
+            let mut finally_body = Vec::new();
+            self.expect(TokenType::OpenBrace, "Open Brace Expected after finally");
+
+            while self.not_eof() && self.at().token_type != TokenType::CloseBrace {
+                finally_body.push(self.parse_stmt());
+            }
+            self.expect(
+                TokenType::CloseBrace,
+                "CLosing Brace after finally body Expected",
+            );
+
+            finally_branch = Some(finally_body);
+        }
+
+        Stmt::TryCatchFinally {
+            try_branch,
+            catch_branch,
+            finally_branch,
         }
     }
 

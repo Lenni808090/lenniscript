@@ -10,12 +10,18 @@ use std::io::Write;
 
 fn main() {
     let source = r#"
+
         fn test(num1: num, num2: num) -> num {
-            num1 += 1;
-            let res: num = num1 + num2;
-            return res;
-            for(let i = 0; i < 10; ++i) {
-                console.log("hi");
+            try {
+                num1 += 1;
+                let res: num = num1 + num2;
+                return res;
+                for(let i = 0; i < 10; ++i) {
+                    console.log("hi");
+                }
+            }
+            catch{
+                console.log("ERROR");
             }
         }
          let x = 2;
@@ -36,7 +42,6 @@ fn main() {
     let mut parser = parser::Parser::new();
     let ast = parser.produceAst(source);
     println!("{:?}", &ast);
-    // Add type checking before compilation
     let mut type_checker = typechecker::TypeChecker::new();
     match type_checker.check_program(&ast) {
         Ok(_) => {

@@ -24,6 +24,10 @@ pub enum TokenType {
 
     While,
 
+    Try,
+    Catch,
+    Finally,
+
     GreaterThen,
     LessThen,
     GreaterThenEquals,
@@ -377,12 +381,12 @@ impl<'a> Lexer<'a> {
             "fn" => TokenType::Fn,
             "true" => TokenType::True,
             "false" => TokenType::False,
-            "string" => TokenType::TypeAnnotation,
-            "num" => TokenType::TypeAnnotation,
-            "array" => TokenType::TypeAnnotation,
-            "bool" => TokenType::TypeAnnotation,
+            "string" | "num" | "array" | "bool" => TokenType::TypeAnnotation,
             "for" => TokenType::For,
             "in" => TokenType::In,
+            "try" => TokenType::Try,
+            "catch" => TokenType::Catch,
+            "finally" => TokenType::Finally,
             _ => TokenType::Identifier,
         };
 

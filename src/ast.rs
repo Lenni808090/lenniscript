@@ -33,6 +33,12 @@ pub enum Stmt {
         value: Option<Expr>,
     },
 
+    TryCatchFinally {
+        try_branch: Vec<Stmt>,
+        catch_branch: Vec<Stmt>,
+        finally_branch: Option<Vec<Stmt>>,
+    },
+
     ForLoopStatement {
         initializer: Option<Box<Stmt>>,
         condition: Option<Expr>,
@@ -100,8 +106,7 @@ pub struct ElseIfBranch {
     pub condition: Expr,
     pub body: Vec<Stmt>,
 }
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Property {
     pub key: String,
     pub value: Option<Expr>,

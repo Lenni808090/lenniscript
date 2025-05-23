@@ -121,36 +121,14 @@ impl TypeChecker {
 
     fn check_statement(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
         match stmt {
-            Stmt::VarDeclaration {
-                var_type,
-                value: Some(value),
-                identifier,
-                ..
-            } => {
-                let expr_type = self.infer_type(value)?;
-                if *var_type != expr_type && *var_type != Type::Any {
-                    return Err(TypeError {
-                        message: format!(
-                            "Type conflict: expected {:?}, got {:?}",
-                            var_type, expr_type
-                        ),
-                    });
-                }
-
-                let final_type = if *var_type == Type::Any {
-                    expr_type.clone()
-                } else {
-                    var_type.clone()
-                };
-                self.declare_variable(identifier.clone(), final_type);
-                Ok(())
-            }
+            Stmt::VarDeclaration { .. } => self.check_var_declaration(stmt),
             Stmt::FunctionDeclaration { .. } => self.check_fn_declaration(stmt),
             Stmt::IfStatement { .. } => self.check_if_stmt(stmt),
             Stmt::WhileStatement { .. } => self.check_while_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.check_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.check_for_in_loop(stmt),
             Stmt::ReturnStatement { .. } => self.check_return_stmt(stmt),
+            Stmt::TryCatchFinally { .. } => self.check_try_catch_stmt(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -159,7 +137,35 @@ impl TypeChecker {
             _ => Ok(()),
         }
     }
+    fn check_var_declaration(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::VarDeclaration {
+            identifier,
+            value: Some(value),
+            var_type,
+            constant,
+        } = stmt
+        {
+            let expr_type = self.infer_type(value)?;
+            if *var_type != expr_type && *var_type != Type::Any {
+                return Err(TypeError {
+                    message: format!(
+                        "Type conflict: expected {:?}, got {:?}",
+                        var_type, expr_type
+                    ),
+                });
+            }
 
+            let final_type = if *var_type == Type::Any {
+                expr_type.clone()
+            } else {
+                var_type.clone()
+            };
+            self.declare_variable(identifier.clone(), final_type);
+            Ok(())
+        } else {
+            panic!("Var declaration expected")
+        }
+    }
     fn check_fn_declaration(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
         if let Stmt::FunctionDeclaration {
             name,
@@ -341,8 +347,6 @@ impl TypeChecker {
             if let Some(iter) = iterator {
                 if let Stmt::VarDeclaration { identifier, .. } = iter.as_ref() {
                     self.declare_variable(identifier.clone(), element_type.clone());
-                } else {
-                    self.check_statement(iter)?;
                 }
             } else {
                 panic!("iterator needed");
@@ -400,7 +404,32 @@ impl TypeChecker {
 
             Ok(())
         } else {
-            panic!("Return statent expected")
+            panic!("Return statement expected")
+        }
+    }
+
+    fn check_try_catch_stmt(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::TryCatchFinally {
+            try_branch,
+            catch_branch,
+            finally_branch,
+        } = stmt
+        {
+            for stmt in try_branch {
+                self.check_statement(&stmt)?;
+            }
+            for stmt in catch_branch {
+                self.check_statement(&stmt)?;
+            }
+            if let Some(finally_branch) = finally_branch {
+                for stmt in finally_branch {
+                    self.check_statement(&stmt)?;
+                }
+            }
+
+            Ok(())
+        } else {
+            panic!("Try catch stmt expected")
         }
     }
 

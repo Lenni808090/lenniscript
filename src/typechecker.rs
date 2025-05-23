@@ -416,14 +416,14 @@ impl TypeChecker {
         } = stmt
         {
             for stmt in try_branch {
-                self.check_statement(&stmt)?;
+                self.check_statement(stmt)?;
             }
             for stmt in catch_branch {
-                self.check_statement(&stmt)?;
+                self.check_statement(stmt)?;
             }
             if let Some(finally_branch) = finally_branch {
                 for stmt in finally_branch {
-                    self.check_statement(&stmt)?;
+                    self.check_statement(stmt)?;
                 }
             }
 

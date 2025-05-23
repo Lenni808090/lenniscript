@@ -45,15 +45,15 @@ impl TypeChecker {
 
     fn matching_types(&self, target_type: &Type, value_type: &Type) -> bool {
         if target_type == value_type || *target_type == Type::Any {
-            return true
+            return true;
         }
 
         if let Type::Option(inner_type) = &target_type {
             if *value_type == **inner_type || *value_type == Type::Null {
-                return true
+                return true;
             }
         }
-        
+
         false
     }
 
@@ -392,7 +392,7 @@ impl TypeChecker {
                                     "Return type mismatch: expected {:?}, but got {:?}",
                                     expected_value_type, actual_return_type
                                 ),
-                            }); 
+                            });
                         }
                     }
                     None => {
@@ -476,86 +476,14 @@ impl TypeChecker {
                 Ok(Type::Any)
             }
 
-            Expr::CompoundAssignment {
-                assignee,
-                value,
-                operator,
-            } => {
-                let assignee_type = self.infer_type(assignee)?;
-                let value_type = self.infer_type(value)?;
-
-                if operator != "+=" && (assignee_type == Type::String || value_type == Type::String)
-                {
-                    return Err(TypeError {
-                        message: format!(
-                            "Cannot use operator '{}' with a string value/assignee. Only '+=' is allowed for string concatenation.",
-                            operator
-                        ),
-                    });
-                }
-
-                let binary_expr = Expr::Binary {
-                    left: Box::new((**assignee).clone()),
-                    right: Box::new((**value).clone()),
-                    operator: operator.clone().replace("=", ""),
-                };
-
-                let new_expr = Expr::Assignment {
-                    assignee: Box::new((**assignee).clone()),
-                    value: Box::new(binary_expr),
-                };
-
-                self.check_assignment(&new_expr)?;
+            Expr::CompoundAssignment { .. } => {
+                self.check_compund_assignment(expr)?;
                 Ok(Type::Any)
             }
 
-            Expr::Binary {
-                left,
-                right,
-                operator,
-            } => {
-                let left_type = self.infer_type(left)?;
-                let right_type = self.infer_type(right)?;
-
-                let both_numbers = left_type == Type::Number && right_type == Type::Number;
-                let left_is_string = left_type == Type::String;
-                let right_is_string = right_type == Type::String;
-
-                match operator.as_str() {
-                    "+" => {
-                        if both_numbers {
-                            Ok(Type::Number)
-                        } else if left_is_string || right_is_string {
-                            Ok(Type::String)
-                        } else {
-                            Err(TypeError {
-                                message: format!(
-                                    "Operator '+' kann nicht auf die Typen {:?} und {:?} angewendet werden. Erlaubt für Zahl + Zahl oder String + (String/Zahl).",
-                                    left_type, right_type
-                                ),
-                            })
-                        }
-                    }
-
-                    "-" | "*" | "/" => {
-                        if both_numbers {
-                            Ok(Type::Number)
-                        } else {
-                            Err(TypeError {
-                                message: format!(
-                                    "Arithmetischer Operator '{}' erfordert Zahlentypen, aber {:?} und {:?} wurden empfangen.",
-                                    operator, left_type, right_type
-                                ),
-                            })
-                        }
-                    }
-
-                    "==" | "!=" | "<" | ">" | "<=" | ">=" | "||" | "&&" => Ok(Type::Boolean),
-
-                    _ => Err(TypeError {
-                        message: format!("Unbekannter Operator '{}'", operator),
-                    }),
-                }
+            Expr::Binary { .. } => {
+                self.check_binary_expr(expr)?;
+                Ok(Type::Any)
             }
 
             _ => Ok(Type::Any),
@@ -590,6 +518,97 @@ impl TypeChecker {
             Ok(Type::Number)
         } else {
             panic!("Expected Increment expr")
+        }
+    }
+
+    fn check_compund_assignment(&mut self, expr: &Expr) -> Result<Type, TypeError> {
+        if let Expr::CompoundAssignment {
+            assignee,
+            value,
+            operator,
+        } = expr
+        {
+            let assignee_type = self.infer_type(assignee)?;
+            let value_type = self.infer_type(value)?;
+
+            if operator != "+=" && (assignee_type == Type::String || value_type == Type::String) {
+                return Err(TypeError {
+                    message: format!(
+                        "Cannot use operator '{}' with a string value/assignee. Only '+=' is allowed for string concatenation.",
+                        operator
+                    ),
+                });
+            }
+
+            let binary_expr = Expr::Binary {
+                left: Box::new((**assignee).clone()),
+                right: Box::new((**value).clone()),
+                operator: operator.clone().replace("=", ""),
+            };
+
+            let new_expr = Expr::Assignment {
+                assignee: Box::new((**assignee).clone()),
+                value: Box::new(binary_expr),
+            };
+
+            self.check_assignment(&new_expr)?;
+            Ok(Type::Any)
+        } else {
+            panic!("Expected compound assignment")
+        }
+    }
+
+    fn check_binary_expr(&mut self, expr: &Expr) -> Result<Type, TypeError> {
+        if let Expr::Binary {
+            left,
+            right,
+            operator,
+        } = expr
+        {
+            let left_type = self.infer_type(left)?;
+            let right_type = self.infer_type(right)?;
+
+            let both_numbers = left_type == Type::Number && right_type == Type::Number;
+            let left_is_string = left_type == Type::String;
+            let right_is_string = right_type == Type::String;
+
+            match operator.as_str() {
+                "+" => {
+                    if both_numbers {
+                        Ok(Type::Number)
+                    } else if left_is_string || right_is_string {
+                        Ok(Type::String)
+                    } else {
+                        Err(TypeError {
+                            message: format!(
+                                "Operator '+' kann nicht auf die Typen {:?} und {:?} angewendet werden. Erlaubt für Zahl + Zahl oder String + (String/Zahl).",
+                                left_type, right_type
+                            ),
+                        })
+                    }
+                }
+
+                "-" | "*" | "/" => {
+                    if both_numbers {
+                        Ok(Type::Number)
+                    } else {
+                        Err(TypeError {
+                            message: format!(
+                                "Arithmetischer Operator '{}' erfordert Zahlentypen, aber {:?} und {:?} wurden empfangen.",
+                                operator, left_type, right_type
+                            ),
+                        })
+                    }
+                }
+
+                "==" | "!=" | "<" | ">" | "<=" | ">=" | "||" | "&&" => Ok(Type::Boolean),
+
+                _ => Err(TypeError {
+                    message: format!("Unbekannter Operator '{}'", operator),
+                }),
+            }
+        } else {
+            panic!("Binary Expression exprected");
         }
     }
 

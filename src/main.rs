@@ -29,7 +29,7 @@ fn main() {
         }
          let test: string? = "hihih";
          test = "hi";
-         test = null;       
+         test = null;
          let x = 2;
          let y = 3;
          if(x == y || x != y){

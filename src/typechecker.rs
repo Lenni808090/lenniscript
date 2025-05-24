@@ -472,18 +472,15 @@ impl TypeChecker {
             }
 
             Expr::Increment { .. } => {
-                self.check_increment(expr)?;
-                Ok(Type::Any)
+                self.check_increment(expr)
             }
 
             Expr::CompoundAssignment { .. } => {
-                self.check_compund_assignment(expr)?;
-                Ok(Type::Any)
+                self.check_compund_assignment(expr)
             }
 
             Expr::Binary { .. } => {
-                self.check_binary_expr(expr)?;
-                Ok(Type::Any)
+                self.check_binary_expr(expr)
             }
 
             _ => Ok(Type::Any),
@@ -498,9 +495,9 @@ impl TypeChecker {
             if self.matching_types(&target_type, &value_type) {
                 Ok(())
             } else {
-                return Err(TypeError {
+                Err(TypeError {
                     message: format!("Expected {:?} got {:?}", target_type, value_type),
-                });
+                })
             }
         } else {
             panic!("assignment expected");

@@ -39,6 +39,12 @@ pub enum Stmt {
         finally_branch: Option<Vec<Stmt>>,
     },
 
+    switchStatement {
+        condition: Expr,
+        case_branches: Vec<caseBranch>,
+        default_branch: Vec<Stmt>,
+    },
+
     ForLoopStatement {
         initializer: Option<Box<Stmt>>,
         condition: Option<Expr>,
@@ -109,6 +115,12 @@ pub struct ElseIfBranch {
     pub condition: Expr,
     pub body: Vec<Stmt>,
 }
+#[derive(Debug)]
+pub struct caseBranch {
+    pub condition: Expr,
+    pub body: Vec<Stmt>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Property {
     pub key: String,

@@ -14,6 +14,11 @@ pub enum TokenType {
     Fn,
     Arrow,
 
+    Switch,
+    Case,
+    Default,
+    SwitchArrow,
+
     True,
     False,
 
@@ -150,6 +155,9 @@ impl<'a> Lexer<'a> {
                         self.chars.next();
                         self.tokens
                             .push(Token::new_static(TokenType::EqualsEquals, "==", line));
+                    } else if let Some(&'>') = self.chars.peek() {
+                        self.tokens
+                            .push(Token::new_static(TokenType::SwitchArrow, "=>", line));
                     } else {
                         self.tokens
                             .push(Token::new_static(TokenType::Equals, "=", line));
@@ -398,6 +406,9 @@ impl<'a> Lexer<'a> {
             "try" => TokenType::Try,
             "catch" => TokenType::Catch,
             "finally" => TokenType::Finally,
+            "switch" => TokenType::Switch,
+            "case" => TokenType::Case,
+            "default" => TokenType::Default,
             _ => TokenType::Identifier,
         };
 

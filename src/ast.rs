@@ -39,7 +39,7 @@ pub enum Stmt {
         finally_branch: Option<Vec<Stmt>>,
     },
 
-    switchStatement {
+    SwitchStatement {
         condition: Expr,
         case_branches: Vec<caseBranch>,
         default_branch: Vec<Stmt>,

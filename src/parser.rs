@@ -2,7 +2,7 @@ use crate::ast;
 use crate::ast::Expr::{Binary, CompoundAssignment};
 use crate::ast::Stmt::WhileStatement;
 use crate::ast::Type::{Boolean, Number};
-use crate::ast::{ElseIfBranch, Expr, Property, Stmt, Type};
+use crate::ast::{caseBranch, ElseIfBranch, Expr, Property, Stmt, Type};
 use crate::lexer;
 use crate::lexer::{tokenize, Token, TokenType};
 use std::str::FromStr;
@@ -131,6 +131,8 @@ impl Parser {
             TokenType::Try => self.parse_try_catch_stmt(),
 
             TokenType::For => self.parse_for_statement(),
+
+            TokenType::Switch => self.parse_switch_statement(),
 
             _ => {
                 let expr = self.parse_expr();
@@ -503,6 +505,81 @@ impl Parser {
         }
     }
 
+    fn parse_switch_statement(&mut self) -> Stmt {
+        self.eat();
+        self.expect(
+            TokenType::OpenParen,
+            "open paren after switch stmt expected",
+        );
+        let condition = self.parse_expr();
+        self.expect(
+            TokenType::CloseParen,
+            "close paren after condition expected",
+        );
+        self.expect(
+            TokenType::OpenBrace,
+            "open brace expected after the condiotion",
+        );
+
+        let mut cases = Vec::new();
+        let mut default_branch = None;
+        loop {
+            if self.at().token_type == TokenType::Case {
+                self.eat();
+                let case_condition = self.parse_expr();
+                self.expect(
+                    TokenType::SwitchArrow,
+                    "Switch arrow expected after case condition",
+                );
+                self.expect(
+                    TokenType::OpenBrace,
+                    "open brace after case condition expected",
+                );
+                let mut case_body = Vec::new();
+                while self.not_eof() && self.at().token_type != TokenType::CloseBrace {
+                    case_body.push(self.parse_stmt());
+                }
+                self.expect(TokenType::CloseBrace, "Closing brace after case body");
+
+                cases.push(caseBranch {
+                    condition: case_condition,
+                    body: case_body,
+                })
+            } else if self.at().token_type == TokenType::Default {
+                self.eat();
+                self.expect(
+                    TokenType::SwitchArrow,
+                    "Switch arrow expected after default",
+                );
+                self.expect(
+                    TokenType::OpenBrace,
+                    "open brace after switch arrow expected",
+                );
+                let mut default_body = Vec::new();
+                while self.not_eof() && self.at().token_type != TokenType::CloseBrace {
+                    default_body.push(self.parse_stmt());
+                }
+                self.expect(TokenType::CloseBrace, "Closing brace after case body");
+
+                default_branch = Some(default_body);
+            } else if self.at().token_type == TokenType::CloseBrace {
+                self.eat();
+                break;
+            } else {
+                panic!("Unexpected token");
+            }
+        }
+        if cases.is_empty() {
+            panic!("At least one case branch is required");
+        }
+
+        Stmt::SwitchStatement {
+            condition,
+            case_branches: cases,
+            default_branch: default_branch.expect("default branch needed"),
+        }
+    }
+
     fn parse_assignment_expr(&mut self) -> Expr {
         let mut left = self.parse_object_expr();
 
@@ -552,7 +629,16 @@ impl Parser {
         self.eat();
         let mut properties: Vec<Property> = Vec::new();
 
-        while (self.not_eof() && self.at().token_type != TokenType::CloseBrace) {
+        if self.at().token_type == TokenType::CloseBrace {
+            self.eat();
+            return Expr::ObjectLiteral(properties);
+        }
+
+        loop {
+            if self.at().token_type == TokenType::CloseBrace {
+                break;
+            }
+
             let key = self
                 .expect(TokenType::Identifier, "Object literal key expected")
                 .value;
@@ -576,7 +662,10 @@ impl Parser {
                 key,
                 value: Some(value),
             });
-            if self.at().token_type != TokenType::CloseBrace {
+
+            if self.at().token_type == TokenType::Comma {
+                self.eat();
+            } else if self.at().token_type != TokenType::CloseBrace {
                 self.expect(
                     TokenType::Comma,
                     "Expected comma or closing bracket following property",

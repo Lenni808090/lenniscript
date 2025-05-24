@@ -50,6 +50,7 @@ impl Compiler {
             Stmt::ForLoopStatement { .. } => self.compile_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.compile_for_in_loop(stmt),
             Stmt::TryCatchFinally { .. } => self.compile_try_catch_stmt(stmt),
+            Stmt::SwitchStatement { .. } => self.compile
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");

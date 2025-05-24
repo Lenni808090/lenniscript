@@ -32,6 +32,17 @@ fn main() {
          test = null;
          let x = 2;
          let y = 3;
+         
+         switch (y) {
+            case 3 => {
+                console.log("3");
+            }
+
+            default => {
+                console.log("unknown");
+            }
+         }
+         
          if(x == y || x != y){
             console.log(x,y);
          }

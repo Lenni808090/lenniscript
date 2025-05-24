@@ -156,6 +156,7 @@ impl<'a> Lexer<'a> {
                         self.tokens
                             .push(Token::new_static(TokenType::EqualsEquals, "==", line));
                     } else if let Some(&'>') = self.chars.peek() {
+                        self.chars.next();
                         self.tokens
                             .push(Token::new_static(TokenType::SwitchArrow, "=>", line));
                     } else {

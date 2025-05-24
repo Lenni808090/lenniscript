@@ -145,6 +145,7 @@ impl TypeChecker {
             Stmt::ForInLoopStatement { .. } => self.check_for_in_loop(stmt),
             Stmt::ReturnStatement { .. } => self.check_return_stmt(stmt),
             Stmt::TryCatchFinally { .. } => self.check_try_catch_stmt(stmt),
+            Stmt::SwitchStatement { .. } => self.check_switch_stmt(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -443,6 +444,28 @@ impl TypeChecker {
         }
     }
 
+    fn check_switch_stmt(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::SwitchStatement {
+            case_branches,
+            default_branch,
+            ..
+        } = stmt
+        {
+            for case_branch in case_branches {
+                for stmt in &case_branch.body {
+                    self.check_statement(stmt)?;
+                }
+            }
+            for stmt in default_branch {
+                self.check_statement(stmt)?
+            }
+
+            Ok(())
+        } else {
+            panic!("Expected swiotcvh stmt");
+        }
+    }
+
     fn infer_type(&mut self, expr: &Expr) -> Result<Type, TypeError> {
         match expr {
             Expr::NumericLiteral(_) => Ok(Type::Number),
@@ -471,17 +494,11 @@ impl TypeChecker {
                 Ok(Type::Any)
             }
 
-            Expr::Increment { .. } => {
-                self.check_increment(expr)
-            }
+            Expr::Increment { .. } => self.check_increment(expr),
 
-            Expr::CompoundAssignment { .. } => {
-                self.check_compund_assignment(expr)
-            }
+            Expr::CompoundAssignment { .. } => self.check_compund_assignment(expr),
 
-            Expr::Binary { .. } => {
-                self.check_binary_expr(expr)
-            }
+            Expr::Binary { .. } => self.check_binary_expr(expr),
 
             _ => Ok(Type::Any),
         }

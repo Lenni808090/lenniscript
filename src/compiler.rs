@@ -50,7 +50,7 @@ impl Compiler {
             Stmt::ForLoopStatement { .. } => self.compile_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.compile_for_in_loop(stmt),
             Stmt::TryCatchFinally { .. } => self.compile_try_catch_stmt(stmt),
-            Stmt::SwitchStatement { .. } => self.compile
+            Stmt::SwitchStatement { .. } => self.compile_switch_stmt(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");
@@ -349,6 +349,51 @@ impl Compiler {
             compiled_try
         } else {
             panic!("expected try catch stmt");
+        }
+    }
+
+    fn compile_switch_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::SwitchStatement {
+            condition,
+            case_branches,
+            default_branch,
+        } = stmt
+        {
+            let mut comp_switch = String::new();
+            let comp_condition = self.compile_expr(condition);
+            comp_switch.push_str(&format!("switch({}) ", comp_condition));
+            comp_switch.push('{');
+
+            self.increase_indent();
+            for case_branch in case_branches {
+                let comp_case_condition = self.compile_expr(&case_branch.condition);
+                comp_switch.push_str(&self.get_indent().to_string());
+                comp_switch.push_str(&format!("case {}:\n", comp_case_condition));
+
+                self.increase_indent();
+                for stmt in &case_branch.body {
+                    let comp_stmt = self.compile_stmt(stmt);
+                    comp_switch.push_str(&format!("{}{};\n", self.get_indent(), comp_stmt));
+                }
+                comp_switch.push_str(&format!("{}{};\n", self.get_indent(), "break"));
+                self.decrease_indent();
+            }
+
+            comp_switch.push_str(&self.get_indent().to_string());
+            comp_switch.push_str("default:\n");
+
+            self.increase_indent();
+            for stmt in default_branch {
+                let comp_stmt = self.compile_stmt(stmt);
+                comp_switch.push_str(&format!("{}{};\n", self.get_indent(), comp_stmt));
+            }
+            self.decrease_indent();
+
+            self.decrease_indent();
+            comp_switch.push_str(&format!("{}}}", self.get_indent()));
+            comp_switch
+        } else {
+            panic!("Switch statement expected");
         }
     }
 

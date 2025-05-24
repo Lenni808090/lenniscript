@@ -17,7 +17,8 @@ test = "hi"
 test = null
 let x = 2
 let y = 3
-switch(y) {    case 3:
+switch(y) {
+    case 3:
         console.log("3");
         break;
     default:

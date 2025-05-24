@@ -361,9 +361,9 @@ impl Compiler {
         {
             let mut comp_switch = String::new();
             let comp_condition = self.compile_expr(condition);
-            comp_switch.push_str(&format!("switch({}) ", comp_condition));
-            comp_switch.push('{');
-
+            comp_switch.push_str(&format!("switch({})", comp_condition));
+            comp_switch.push_str(" {\n");
+            
             self.increase_indent();
             for case_branch in case_branches {
                 let comp_case_condition = self.compile_expr(&case_branch.condition);

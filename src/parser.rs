@@ -128,6 +128,8 @@ impl Parser {
 
             TokenType::Fn => self.parse_fn_declaration(),
 
+            TokenType::Async => self.parse_fn_declaration(),
+
             TokenType::Try => self.parse_try_catch_stmt(),
 
             TokenType::For => self.parse_for_statement(),
@@ -934,6 +936,15 @@ impl Parser {
                 );
                 Expr::ArrayLiteral(elements)
             }
+
+            TokenType::Await => {
+                self.eat();
+                let value = self.parse_expr();
+                Expr::AwaitExpression {
+                    value: Box::new(value),
+                }
+            }
+
             TokenType::OpenParen => {
                 self.eat();
                 let expr = self.parse_expr();

@@ -11,7 +11,7 @@ use std::io::Write;
 fn main() {
     let source = r#"
 
-        fn test(num1: num, num2: num) -> num {
+        async fn test(num1: num, num2: num) -> num {
             try {
                 num1 += 1;
                 let res = num1 + num2;
@@ -19,6 +19,8 @@ fn main() {
                 for(let i = 0; i < 10; ++i) {
                     console.log("hi");
                 }
+                
+                let zahl: num = await 5+5;
             }
             catch {
                 console.log("ERROR");

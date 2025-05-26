@@ -188,10 +188,14 @@ impl Compiler {
             name,
             parameters,
             body,
+            is_async,
             ..
         } = stmt
         {
             let mut compiled_function: String = String::new();
+            if *is_async {
+                compiled_function.push_str("async ");
+            }
             compiled_function.push_str(&format!("function {}(", name));
 
             if !parameters.is_empty() {
@@ -363,7 +367,7 @@ impl Compiler {
             let comp_condition = self.compile_expr(condition);
             comp_switch.push_str(&format!("switch({})", comp_condition));
             comp_switch.push_str(" {\n");
-            
+
             self.increase_indent();
             for case_branch in case_branches {
                 let comp_case_condition = self.compile_expr(&case_branch.condition);
@@ -411,6 +415,7 @@ impl Compiler {
             Expr::ObjectLiteral(..) => self.compile_object_literal(expr),
             Expr::Member { .. } => self.compile_member_expr(expr),
             Expr::Call { .. } => self.compile_call_expr(expr),
+            Expr::AwaitExpression { .. } => self.compile_await_expr(expr),
             Expr::Increment { .. } => self.compile_increment_expr(expr),
             _ => {
                 panic!("expression not implemented {:?}", expr);
@@ -547,6 +552,14 @@ impl Compiler {
             compiled_call
         } else {
             panic!("Expected Call Expr")
+        }
+    }
+
+    fn compile_await_expr(&mut self, expr: &Expr) -> String {
+        if let Expr::AwaitExpression { value } = expr {
+            format!("await {}", self.compile_expr(value))
+        } else {
+            panic!("Await Expr expected");
         }
     }
 

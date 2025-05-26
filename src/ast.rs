@@ -30,9 +30,11 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
+
     ReturnStatement {
         value: Option<Expr>,
     },
+
 
     TryCatchFinally {
         try_branch: Vec<Stmt>,
@@ -70,6 +72,10 @@ pub enum Expr {
         operator: String,
     },
 
+    AwaitExpression {
+        value: Box<Expr>,
+    },
+    
     Increment {
         identifier: Box<Expr>,
         prefix: bool,

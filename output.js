@@ -1,4 +1,4 @@
-function test(num1, num2) {
+async function test(num1, num2) {
     try {
         num1 += 1
         let res = (num1 + num2)
@@ -6,6 +6,7 @@ function test(num1, num2) {
         for (let i = 0; (i < 10); ++i) {
             console.log("hi")
         }
+        let zahl = await (5 + 5)
     } catch {
         console.log("ERROR")
     } finally {

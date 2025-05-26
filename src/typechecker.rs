@@ -9,6 +9,7 @@ pub struct TypeChecker {
     function_signatures: HashMap<String, Vec<Type>>,
     function_return_type: HashMap<String, Type>,
     current_return_type: Option<Type>,
+    currently_async: bool,
     js_stdlib: JsStdLib,
 }
 
@@ -113,6 +114,7 @@ impl TypeChecker {
             function_signatures: HashMap::new(),
             function_return_type: HashMap::new(),
             current_return_type: None,
+            currently_async: false,
             js_stdlib,
         }
     }
@@ -189,8 +191,12 @@ impl TypeChecker {
             param_types,
             body,
             return_type,
+            is_async,
         } = stmt
         {
+            if *is_async {
+                self.currently_async = true;
+            }
             self.function_signatures
                 .insert(name.clone(), param_types.clone());
 
@@ -210,6 +216,10 @@ impl TypeChecker {
             self.exit_scope();
 
             self.current_return_type = None;
+
+            if *is_async {
+                self.currently_async = false;
+            }
 
             Ok(())
         } else {
@@ -494,6 +504,8 @@ impl TypeChecker {
                 Ok(Type::Any)
             }
 
+            Expr::AwaitExpression { .. } => self.check_await_expression(expr),
+
             Expr::Increment { .. } => self.check_increment(expr),
 
             Expr::CompoundAssignment { .. } => self.check_compund_assignment(expr),
@@ -518,6 +530,21 @@ impl TypeChecker {
             }
         } else {
             panic!("assignment expected");
+        }
+    }
+
+    fn check_await_expression(&mut self, expr: &Expr) -> Result<Type, TypeError> {
+        if let Expr::AwaitExpression { value } = expr {
+            let value_type = self.infer_type(value);
+            if !self.currently_async{
+                return Err(TypeError {
+                    message: "Await can only be called in async functions".to_string(), 
+                })
+            }
+
+            Ok(value_type?)
+        } else {
+            panic!("await expression expected");
         }
     }
 

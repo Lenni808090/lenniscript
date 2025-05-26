@@ -303,7 +303,14 @@ impl Parser {
     }
 
     fn parse_fn_declaration(&mut self) -> Stmt {
-        self.eat();
+        let mut is_async = false;
+        if self.at().token_type == TokenType::Async {
+            self.eat();
+            self.expect(TokenType::Fn, "fn expected after async keyword");
+            is_async = true;
+        } else {
+            self.eat();
+        }
 
         let name = self
             .expect(TokenType::Identifier, "name expected after fn keyword")
@@ -349,6 +356,7 @@ impl Parser {
             return_type,
             parameters: params,
             param_types: arg_types,
+            is_async,
         }
     }
 

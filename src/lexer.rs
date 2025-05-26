@@ -11,6 +11,7 @@ pub enum TokenType {
     Let,
     Const,
 
+    Async,
     Fn,
     Arrow,
 
@@ -410,6 +411,7 @@ impl<'a> Lexer<'a> {
             "switch" => TokenType::Switch,
             "case" => TokenType::Case,
             "default" => TokenType::Default,
+            "async" => TokenType::Async,
             _ => TokenType::Identifier,
         };
 

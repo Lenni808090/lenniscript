@@ -17,6 +17,7 @@ pub enum Stmt {
         param_types: Vec<Type>,
         return_type: Type,
         body: Vec<Stmt>,
+        is_async: bool,
     },
     Expression(Expr),
     IfStatement {

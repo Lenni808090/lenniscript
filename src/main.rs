@@ -46,6 +46,12 @@ fn main() {
                 console.log("unknown");
             }
          }
+
+         let unaryTest: bool = false;
+
+         if(!unaryTest) {
+            console.log("unaryTest ist falsch");
+         }
          
          if(x == y || x != y){
             console.log(x,y);

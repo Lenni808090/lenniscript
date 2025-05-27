@@ -28,6 +28,10 @@ switch(y) {
     default:
         console.log("unknown");
 }
+let unaryTest = false
+if (!unaryTest) {
+    console.log("unaryTest ist falsch")
+}
 if (((x == y) || (x != y))) {
     console.log(x, y)
 }

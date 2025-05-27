@@ -522,6 +522,8 @@ impl TypeChecker {
                 Ok(Type::Any)
             }
 
+            Expr::Unary { .. } => self.check_unary_expr(expr),
+
             Expr::AwaitExpression { .. } => self.check_await_expression(expr),
 
             Expr::Increment { .. } => self.check_increment(expr),
@@ -548,6 +550,21 @@ impl TypeChecker {
             }
         } else {
             panic!("assignment expected");
+        }
+    }
+
+    fn check_unary_expr(&mut self, expr: &Expr) -> Result<Type, TypeError> {
+        if let Expr::Unary { value, .. } = expr {
+            let value_type = self.infer_type(value)?;
+            if !self.matching_types(&Type::Boolean, &value_type) {
+                return Err(TypeError {
+                    message: "Unary operator ! can only be applied to booleans".to_string(),
+                });
+            }
+
+            Ok(Type::Boolean)
+        } else {
+            panic!("unary expression expected");
         }
     }
 

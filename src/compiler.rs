@@ -426,6 +426,7 @@ impl Compiler {
             Expr::Member { .. } => self.compile_member_expr(expr),
             Expr::Call { .. } => self.compile_call_expr(expr),
             Expr::AwaitExpression { .. } => self.compile_await_expr(expr),
+            Expr::Unary { .. } => self.compile_unary_expr(expr),
             Expr::Increment { .. } => self.compile_increment_expr(expr),
             _ => {
                 panic!("expression not implemented {:?}", expr);
@@ -562,6 +563,14 @@ impl Compiler {
             compiled_call
         } else {
             panic!("Expected Call Expr")
+        }
+    }
+
+    fn compile_unary_expr(&mut self, expr: &Expr) -> String {
+        if let Expr::Unary { value, operator } = expr {
+            format!("{}{}", operator, self.compile_expr(value))
+        } else {
+            panic!("unary expression expected");
         }
     }
 

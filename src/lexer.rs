@@ -35,6 +35,9 @@ pub enum TokenType {
 
     While,
 
+    Break,
+    Continue,
+
     Try,
     Catch,
     Finally,
@@ -395,26 +398,40 @@ impl<'a> Lexer<'a> {
 
         let token_type = match identifier.as_str() {
             "let" => TokenType::Let,
+
             "return" => TokenType::Return,
+
             "const" => TokenType::Const,
+
             "while" => TokenType::While,
+
             "if" => TokenType::If,
             "else" => TokenType::Else,
+
             "fn" => TokenType::Fn,
+
             "true" => TokenType::True,
             "false" => TokenType::False,
+
             "null" => TokenType::Null,
             "string" | "num" | "array" | "bool" => TokenType::TypeAnnotation,
+
             "for" => TokenType::For,
             "in" => TokenType::In,
+
             "try" => TokenType::Try,
             "catch" => TokenType::Catch,
             "finally" => TokenType::Finally,
+
             "switch" => TokenType::Switch,
             "case" => TokenType::Case,
             "default" => TokenType::Default,
+
             "async" => TokenType::Async,
             "await" => TokenType::Await,
+
+            "continue" => TokenType::Continue,
+            "break" => TokenType::Break,
             _ => TokenType::Identifier,
         };
 

@@ -35,7 +35,6 @@ pub enum Stmt {
         value: Option<Expr>,
     },
 
-
     TryCatchFinally {
         try_branch: Vec<Stmt>,
         catch_branch: Vec<Stmt>,
@@ -60,6 +59,8 @@ pub enum Stmt {
         iterable: Option<Expr>,
         body: Vec<Stmt>,
     },
+    BreakStatement,
+    ContinueStatement,
 }
 
 #[derive(Debug, Clone)]
@@ -75,7 +76,7 @@ pub enum Expr {
     AwaitExpression {
         value: Box<Expr>,
     },
-    
+
     Increment {
         identifier: Box<Expr>,
         prefix: bool,

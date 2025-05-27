@@ -10,6 +10,7 @@ pub struct TypeChecker {
     function_return_type: HashMap<String, Type>,
     current_return_type: Option<Type>,
     currently_async: bool,
+    currently_loop: bool,
     js_stdlib: JsStdLib,
 }
 
@@ -115,6 +116,7 @@ impl TypeChecker {
             function_return_type: HashMap::new(),
             current_return_type: None,
             currently_async: false,
+            currently_loop: false,
             js_stdlib,
         }
     }
@@ -148,6 +150,7 @@ impl TypeChecker {
             Stmt::ReturnStatement { .. } => self.check_return_stmt(stmt),
             Stmt::TryCatchFinally { .. } => self.check_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.check_switch_stmt(stmt),
+            Stmt::ContinueStatement => self.check_continue_stmt(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -536,10 +539,10 @@ impl TypeChecker {
     fn check_await_expression(&mut self, expr: &Expr) -> Result<Type, TypeError> {
         if let Expr::AwaitExpression { value } = expr {
             let value_type = self.infer_type(value);
-            if !self.currently_async{
+            if !self.currently_async {
                 return Err(TypeError {
-                    message: "Await can only be called in async functions".to_string(), 
-                })
+                    message: "Await can only be called in async functions".to_string(),
+                });
             }
 
             Ok(value_type?)

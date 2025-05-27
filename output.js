@@ -5,6 +5,9 @@ async function test(num1, num2) {
         return res
         for (let i = 0; (i < 10); ++i) {
             console.log("hi")
+            if ((i == 6)) {
+                break
+            }
         }
         let zahl = await (5 + 5)
     } catch {

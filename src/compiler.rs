@@ -51,6 +51,8 @@ impl Compiler {
             Stmt::ForInLoopStatement { .. } => self.compile_for_in_loop(stmt),
             Stmt::TryCatchFinally { .. } => self.compile_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.compile_switch_stmt(stmt),
+            Stmt::BreakStatement => self.compile_break_stmt(stmt),
+            Stmt::ContinueStatement => self.compile_continue_stmt(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
                 panic!("stmt type not unimplemented");
@@ -399,6 +401,14 @@ impl Compiler {
         } else {
             panic!("Switch statement expected");
         }
+    }
+
+    fn compile_break_stmt(&mut self, stmt: &Stmt) -> String {
+        "break".to_string()
+    }
+
+    fn compile_continue_stmt(&mut self, stmt: &Stmt) -> String {
+        "continue".to_string()
     }
 
     fn compile_expr(&mut self, expr: &Expr) -> String {

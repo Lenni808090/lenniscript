@@ -127,11 +127,11 @@ impl Parser {
             TokenType::While => self.parse_while_statement(),
 
             TokenType::Fn | TokenType::Async => self.parse_fn_declaration(),
-            
+
             TokenType::Break => self.parse_break_stmt(),
-            
+
             TokenType::Continue => self.parse_continue_stmt(),
-            
+
             TokenType::Try => self.parse_try_catch_stmt(),
 
             TokenType::For => self.parse_for_statement(),
@@ -363,17 +363,19 @@ impl Parser {
             is_async,
         }
     }
-    
+
     fn parse_break_stmt(&mut self) -> Stmt {
         self.eat();
+        self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
         Stmt::BreakStatement
     }
-    
+
     fn parse_continue_stmt(&mut self) -> Stmt {
         self.eat();
+        self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
         Stmt::ContinueStatement
     }
-    
+
 
     fn parse_try_catch_stmt(&mut self) -> Stmt {
         self.eat();

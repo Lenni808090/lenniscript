@@ -18,6 +18,9 @@ fn main() {
                 return res;
                 for(let i = 0; i < 10; ++i) {
                     console.log("hi");
+                    if (i == 6) {
+                        continue;
+                    }
                 }
                 
                 let zahl: num = await 5+5;

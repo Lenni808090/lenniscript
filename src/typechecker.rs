@@ -150,7 +150,7 @@ impl TypeChecker {
             Stmt::ReturnStatement { .. } => self.check_return_stmt(stmt),
             Stmt::TryCatchFinally { .. } => self.check_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.check_switch_stmt(stmt),
-            Stmt::ContinueStatement => self.check_continue_stmt(stmt),
+            Stmt::ContinueStatement | Stmt::BreakStatement => self.check_loop_control_stmt(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -232,6 +232,7 @@ impl TypeChecker {
 
     fn check_while_declaration(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
         if let Stmt::WhileStatement { condition, body } = stmt {
+            self.currently_loop = true;
             let cond_type = self.infer_type(condition)?;
 
             if cond_type != Type::Boolean {
@@ -245,6 +246,7 @@ impl TypeChecker {
                 self.check_statement(stmt)?;
             }
             self.exit_scope();
+            self.currently_loop = false;
             Ok(())
         } else {
             Err(TypeError {
@@ -319,6 +321,7 @@ impl TypeChecker {
             body,
         } = stmt
         {
+            self.currently_loop = true;
             self.enter_scope();
 
             if let Some(init) = initializer {
@@ -342,6 +345,7 @@ impl TypeChecker {
             }
 
             self.exit_scope();
+            self.currently_loop = false;
             Ok(())
         } else {
             Err(TypeError {
@@ -357,6 +361,7 @@ impl TypeChecker {
             body,
         } = stmt
         {
+            self.currently_loop = true;
             let element_type = if let Some(itera) = iterable {
                 let iter_type = self.infer_type(itera)?;
                 match iter_type {
@@ -384,7 +389,7 @@ impl TypeChecker {
                 self.check_statement(stmt)?;
             }
             self.exit_scope();
-
+            self.currently_loop = false;
             Ok(())
         } else {
             Err(TypeError {
@@ -477,6 +482,16 @@ impl TypeChecker {
         } else {
             panic!("Expected swiotcvh stmt");
         }
+    }
+
+    fn check_loop_control_stmt(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if !self.currently_loop {
+            return Err(TypeError {
+                message: "Loop control cant be used outside loops".to_string(),
+            });
+        }
+        self.currently_loop = false;
+        Ok(())
     }
 
     fn infer_type(&mut self, expr: &Expr) -> Result<Type, TypeError> {

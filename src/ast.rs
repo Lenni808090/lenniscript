@@ -73,6 +73,11 @@ pub enum Expr {
         operator: String,
     },
 
+    Unary {
+        operator: String,
+        value: Box<Expr>,
+    },
+
     AwaitExpression {
         value: Box<Expr>,
     },

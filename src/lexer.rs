@@ -48,6 +48,7 @@ pub enum TokenType {
     LessThenEquals,
     EqualsEquals,
     NotEquals,
+    Not,
 
     BinaryOperator,
     Equals,
@@ -177,7 +178,7 @@ impl<'a> Lexer<'a> {
                         self.tokens
                             .push(Token::new_static(TokenType::NotEquals, "!=", line));
                     } else {
-                        panic!("Unbekanntes Zeichen: '!' ")
+                        self.tokens.push(Token::new_static(TokenType::Not, "!", line));
                     }
                 }
                 '<' => {

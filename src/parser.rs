@@ -4,12 +4,24 @@ use crate::ast::Stmt::WhileStatement;
 use crate::ast::Type::{Boolean, Number};
 use crate::ast::{caseBranch, ElseIfBranch, Expr, Property, Stmt, Type};
 use crate::lexer;
+use crate::lexer::TokenType::Not;
 use crate::lexer::{tokenize, Token, TokenType};
 use std::str::FromStr;
 
 pub struct Parser {
     tokens: Vec<Token>,
 }
+/*
+- Assignment
+- Object
+- Logic
+- Comparison
+- Additive
+- Multiplicative
+- Call/Member
+- Unary
+- Primary
+*/
 
 impl Parser {
     pub fn new() -> Self {
@@ -375,7 +387,6 @@ impl Parser {
         self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
         Stmt::ContinueStatement
     }
-
 
     fn parse_try_catch_stmt(&mut self) -> Stmt {
         self.eat();
@@ -812,7 +823,7 @@ impl Parser {
     }
 
     fn parse_member_expr(&mut self) -> Expr {
-        let mut object = self.parse_primary_expr();
+        let mut object = self.parse_unary_expr();
 
         while self.at().token_type == TokenType::Dot
             || self.at().token_type == TokenType::OpenBracket
@@ -850,6 +861,19 @@ impl Parser {
         object
     }
 
+    fn parse_unary_expr(&mut self) -> Expr {
+        if self.at().token_type == Not {
+            let operator = self.eat().value;
+            let value = self.parse_unary_expr();
+            return Expr::Unary {
+                operator,
+                value: Box::new(value),
+            };
+        }
+
+        self.parse_primary_expr()
+    }
+
     fn parse_additive_expr(&mut self) -> Expr {
         let mut left = self.parse_multiplicative_expr();
 
@@ -881,7 +905,6 @@ impl Parser {
 
         left
     }
-
     fn parse_primary_expr(&mut self) -> Expr {
         let tk = self.at().token_type;
 

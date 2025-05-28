@@ -570,14 +570,14 @@ impl TypeChecker {
 
     fn check_await_expression(&mut self, expr: &Expr) -> Result<Type, TypeError> {
         if let Expr::AwaitExpression { value } = expr {
-            let value_type = self.infer_type(value);
+            let value_type = self.infer_type(value)?;
             if !self.currently_async {
                 return Err(TypeError {
                     message: "Await can only be called in async functions".to_string(),
                 });
             }
 
-            Ok(value_type?)
+            Ok(value_type)
         } else {
             panic!("await expression expected");
         }

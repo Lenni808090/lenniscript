@@ -35,6 +35,9 @@ if (!unaryTest) {
 if (((x == y) || (x != y))) {
     console.log(x, y)
 }
+for (let tempIterName = 0; tempIterName < 9; tempIterName++) {
+console.log("hi")
+}
 let result = test(2, 4)
 let stri = {str: "hi"}
 let array1 = [1, 1, 2, 2, ]

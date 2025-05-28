@@ -56,6 +56,7 @@ pub enum TokenType {
 
     Comma,
     Dot,
+    DotDot,
     Colon,
     Semicolon,
     Question,
@@ -178,7 +179,8 @@ impl<'a> Lexer<'a> {
                         self.tokens
                             .push(Token::new_static(TokenType::NotEquals, "!=", line));
                     } else {
-                        self.tokens.push(Token::new_static(TokenType::Not, "!", line));
+                        self.tokens
+                            .push(Token::new_static(TokenType::Not, "!", line));
                     }
                 }
                 '<' => {
@@ -214,8 +216,15 @@ impl<'a> Lexer<'a> {
                 }
                 '.' => {
                     self.chars.next();
-                    self.tokens
-                        .push(Token::new_static(TokenType::Dot, ".", line));
+                    if let Some(&'.') = self.chars.peek() {
+                        self.chars.next();
+                        self.tokens
+                            .push(Token::new_static(TokenType::DotDot, "..", line));
+                    }else {
+
+                        self.tokens
+                            .push(Token::new_static(TokenType::Dot, ".", line));
+                    }
                 }
                 ',' => {
                     self.chars.next();
@@ -278,6 +287,9 @@ impl<'a> Lexer<'a> {
                 number.push(ch);
                 self.chars.next();
             } else if ch == '.' && !has_dot {
+                if let Some(&'.') = self.chars.peek() {
+                    break;
+                }
                 has_dot = true;
                 number.push(ch);
                 self.chars.next();

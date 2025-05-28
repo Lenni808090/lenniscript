@@ -443,72 +443,90 @@ impl Parser {
 
         self.expect(TokenType::OpenParen, "Expected '(' after 'for'");
 
-        let initializer = if self.at().token_type != TokenType::Semicolon {
-            if self.at().token_type == TokenType::Let || self.at().token_type == TokenType::Const {
-                let constant = self.at().token_type == TokenType::Const;
-                self.eat();
+        let mut first_number: Option<String> = None;
+        let mut second_number: Option<String> = None;
 
-                let identifier = self
-                    .expect(
-                        TokenType::Identifier,
-                        "Erwartete Bezeichner nach let/const Schlüsselwort",
-                    )
-                    .value;
-
-                if self.at().token_type == TokenType::In {
-                    Some(Box::new(Stmt::VarDeclaration {
-                        constant,
-                        identifier,
-                        var_type: Type::Any,
-                        value: None,
-                    }))
-                } else {
-                    let mut var_type = Type::Any;
-                    if self.at().token_type == TokenType::Colon {
-                        self.eat();
-                        var_type = self.get_type();
-                    }
-                    self.expect(TokenType::Equals, "Erwartete '=' nach Bezeichner");
-                    let value = self.parse_expr();
-                    self.expect(
-                        TokenType::Semicolon,
-                        "Erwartete Semikolon nach Initialisierung",
-                    );
-                    Some(Box::new(Stmt::VarDeclaration {
-                        constant,
-                        identifier,
-                        var_type,
-                        value: Some(value),
-                    }))
-                }
-            } else {
-                Some(Box::new(Stmt::Expression(self.parse_expr())))
-            }
-        } else {
-            None
-        };
-
+        let mut initializer: Option<Box<Stmt>> = None;
         let mut iterable: Option<Expr> = None;
         let mut condition: Option<Expr> = None;
         let mut update: Option<Expr> = None;
 
-        if self.at().token_type == TokenType::In {
-            self.eat();
-            iterable = Some(self.parse_expr());
+        if self.at().token_type == TokenType::_Number {
+            first_number = Some(self.eat().value);
+            self.expect(
+                TokenType::DotDot,
+                "expected dot dot after for the iteration syntax type",
+            );
+            second_number = Some(
+                self.expect(TokenType::_Number, "expected second number after dot dot")
+                    .value,
+            );
         } else {
-            condition = if self.at().token_type != TokenType::Semicolon {
-                Some(self.parse_expr())
+            initializer = if self.at().token_type != TokenType::Semicolon {
+                if self.at().token_type == TokenType::Let
+                    || self.at().token_type == TokenType::Const
+                {
+                    let constant = self.at().token_type == TokenType::Const;
+                    self.eat();
+
+                    let identifier = self
+                        .expect(
+                            TokenType::Identifier,
+                            "Erwartete Bezeichner nach let/const Schlüsselwort",
+                        )
+                        .value;
+
+                    if self.at().token_type == TokenType::In {
+                        Some(Box::new(Stmt::VarDeclaration {
+                            constant,
+                            identifier,
+                            var_type: Type::Any,
+                            value: None,
+                        }))
+                    } else {
+                        let mut var_type = Type::Any;
+                        if self.at().token_type == TokenType::Colon {
+                            self.eat();
+                            var_type = self.get_type();
+                        }
+                        self.expect(TokenType::Equals, "Erwartete '=' nach Bezeichner");
+                        let value = self.parse_expr();
+                        self.expect(
+                            TokenType::Semicolon,
+                            "Erwartete Semikolon nach Initialisierung",
+                        );
+                        Some(Box::new(Stmt::VarDeclaration {
+                            constant,
+                            identifier,
+                            var_type,
+                            value: Some(value),
+                        }))
+                    }
+                } else {
+                    panic!("unexpected formating");
+                }
             } else {
                 None
             };
 
-            self.expect(TokenType::Semicolon, "Expected ';' after loop condition");
-
-            update = if self.at().token_type != TokenType::CloseParen {
-                Some(self.parse_expr())
+            if self.at().token_type == TokenType::In {
+                self.eat();
+                iterable = Some(self.parse_expr());
             } else {
-                None
-            };
+                condition = if self.at().token_type != TokenType::Semicolon {
+                    Some(self.parse_expr())
+                } else {
+                    None
+                };
+
+                self.expect(TokenType::Semicolon, "Expected ';' after loop condition");
+
+                update = if self.at().token_type != TokenType::CloseParen {
+                    Some(self.parse_expr())
+                } else {
+                    None
+                };
+            }
         }
 
         self.expect(TokenType::CloseParen, "Expected ')' after for clauses");
@@ -529,6 +547,12 @@ impl Parser {
             Stmt::ForInLoopStatement {
                 iterator: initializer,
                 iterable,
+                body,
+            }
+        } else if first_number.is_some() && second_number.is_some() {
+            Stmt::ForLoopIterated {
+                first_number,
+                second_number,
                 body,
             }
         } else {

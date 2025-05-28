@@ -10,7 +10,6 @@ use std::io::Write;
 
 fn main() {
     let source = r#"
-
         async fn test(num1: num, num2: num) -> num {
             try {
                 num1 += 1;
@@ -56,7 +55,10 @@ fn main() {
          if(x == y || x != y){
             console.log(x,y);
          }
-
+        
+        for(0..9){
+            console.log("hi");
+        }
 
         let result: num = test(2, 4);
         let stri = {

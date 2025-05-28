@@ -53,6 +53,12 @@ pub enum Stmt {
         update: Option<Expr>,
         body: Vec<Stmt>,
     },
+    
+    ForLoopIterated {
+        first_number: Option<String>,
+        second_number: Option<String>,
+        body: Vec<Stmt>,
+    },
 
     ForInLoopStatement {
         iterator: Option<Box<Stmt>>,

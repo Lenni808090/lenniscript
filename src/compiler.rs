@@ -49,6 +49,7 @@ impl Compiler {
             Stmt::FunctionDeclaration { .. } => self.compile_fun_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.compile_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.compile_for_in_loop(stmt),
+            Stmt::ForLoopIterated { .. } => self.compile_for_iter_loop(stmt),
             Stmt::TryCatchFinally { .. } => self.compile_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.compile_switch_stmt(stmt),
             Stmt::BreakStatement => self.compile_break_stmt(stmt),
@@ -303,6 +304,34 @@ impl Compiler {
             compiled_for_in
         } else {
             panic!("Expected for in expression");
+        }
+    }
+
+    fn compile_for_iter_loop(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::ForLoopIterated {
+            first_number,
+            second_number,
+            body,
+        } = stmt
+        {
+            let mut compiled = String::new();
+
+            compiled.push_str(&format!(
+                "for (let tempIterName = {}; tempIterName < {}; tempIterName++) {{\n",
+                first_number.as_ref().unwrap(),
+                second_number.as_ref().unwrap()
+            ));
+
+            for stmt in body {
+                compiled.push_str(&self.compile_stmt(stmt)); // <- eigene compile_stmt-Funktion für Statements
+                compiled.push('\n');
+            }
+
+            compiled.push('}');
+
+            compiled
+        } else {
+            panic!("Expected ForLoopIterated");
         }
     }
 

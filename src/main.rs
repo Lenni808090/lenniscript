@@ -32,13 +32,13 @@ fn main() {
         console.log(zahl);
        
         
-         const test: string? = "hihih";
+         let test: string? = "hihih";
          test = "hi";
          test = null;
          let x = 2;
          let y = 3;
          
-         const testConst = 3;
+         let testConst = 3;
          testConst = 4;
          
          switch (y) {
@@ -62,8 +62,7 @@ fn main() {
          }
 
         for(0..9 as lol){
-            console.log("hi");
-            lol = 3;
+            console.log(lol);
         }
 
         let result: num = test(2, 4);

@@ -147,6 +147,7 @@ impl TypeChecker {
             Stmt::WhileStatement { .. } => self.check_while_declaration(stmt),
             Stmt::ForLoopStatement { .. } => self.check_for_loop(stmt),
             Stmt::ForInLoopStatement { .. } => self.check_for_in_loop(stmt),
+            Stmt::ForLoopIterated { .. } => self.check_for_iter_loop(stmt),
             Stmt::ReturnStatement { .. } => self.check_return_stmt(stmt),
             Stmt::TryCatchFinally { .. } => self.check_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.check_switch_stmt(stmt),
@@ -395,6 +396,32 @@ impl TypeChecker {
             Err(TypeError {
                 message: "Expected for-in loop statement".to_string(),
             })
+        }
+    }
+
+    fn check_for_iter_loop(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::ForLoopIterated {
+            body,
+            iterator_name,
+            first_number,
+            ..
+        } = stmt{
+            if let Some(iter) = iterator_name {
+                self.check_statement(&Stmt::VarDeclaration {
+                    constant: false,
+                    identifier: iter.clone(),
+                    value: first_number.clone(),
+                    var_type: Type::Number,
+                })?;
+            }
+            
+            for stmt in body {
+                self.check_statement(stmt)?;
+            }
+        
+            Ok(())
+        } else {
+            panic!("For iter loop expected ")
         }
     }
 

@@ -320,8 +320,8 @@ impl Compiler {
             compiled_for_iter.push_str(&format!(
                 "for (let {name} = {start}; {name} < {end}; {name}++) {{\n",
                 name = iterator_name.as_ref().unwrap_or(&"tempIterVar".to_string()),
-                start = first_number.as_ref().unwrap(),
-                end = second_number.as_ref().unwrap()
+                start = self.compile_expr(first_number.as_ref().unwrap()),
+                end = self.compile_expr(second_number.as_ref().unwrap()),
             ));
 
             self.increase_indent();

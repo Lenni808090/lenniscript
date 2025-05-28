@@ -100,6 +100,18 @@ impl Parser {
         self.tokens.first().expect("Keine Tokens verfügbar")
     }
 
+    fn at_and_check(&self, expected: TokenType, err: &str) {
+        let token = self.tokens[0].token_type;
+
+        if token != expected {
+            eprintln!(
+                "Parser-Fehler: {}. Gefunden: {:?}, erwartet: {:?}",
+                err, token, expected
+            );
+            panic!("Parsing abgebrochen {:?}", token);
+        }
+    }
+
     fn eat(&mut self) -> Token {
         self.tokens.remove(0)
     }
@@ -443,8 +455,8 @@ impl Parser {
 
         self.expect(TokenType::OpenParen, "Expected '(' after 'for'");
 
-        let mut first_number: Option<String> = None;
-        let mut second_number: Option<String> = None;
+        let mut first_number: Option<Expr> = None;
+        let mut second_number: Option<Expr> = None;
         let mut iterator_name: Option<String> = None;
 
         let mut initializer: Option<Box<Stmt>> = None;
@@ -453,15 +465,15 @@ impl Parser {
         let mut update: Option<Expr> = None;
 
         if self.at().token_type == TokenType::_Number {
-            first_number = Some(self.eat().value);
+            first_number = Some(self.parse_unary_expr());
             self.expect(
                 TokenType::DotDot,
                 "expected dot dot after for the iteration syntax type",
             );
-            second_number = Some(
-                self.expect(TokenType::_Number, "expected second number after dot dot")
-                    .value,
-            );
+
+            self.at_and_check(TokenType::_Number, "expected second number after dot dot");
+
+            second_number = Some(self.parse_unary_expr());
 
             if self.at().token_type == TokenType::As {
                 self.eat();

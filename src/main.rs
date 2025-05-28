@@ -58,6 +58,7 @@ fn main() {
 
         for(0..9 as lol){
             console.log("hi");
+            lol = 3;
         }
 
         let result: num = test(2, 4);

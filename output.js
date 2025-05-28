@@ -35,8 +35,8 @@ if (!unaryTest) {
 if (((x == y) || (x != y))) {
     console.log(x, y)
 }
-for (let tempIterName = 0; tempIterName < 9; tempIterName++) {
-console.log("hi")
+for (let lol = 0; lol < 9; lol++) {
+    console.log("hi")
 }
 let result = test(2, 4)
 let stri = {str: "hi"}

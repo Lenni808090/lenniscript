@@ -312,28 +312,33 @@ impl Compiler {
             first_number,
             second_number,
             body,
+            iterator_name,
         } = stmt
         {
-            let mut compiled = String::new();
+            let mut compiled_for_iter = String::new();
 
-            compiled.push_str(&format!(
-                "for (let tempIterName = {}; tempIterName < {}; tempIterName++) {{\n",
-                first_number.as_ref().unwrap(),
-                second_number.as_ref().unwrap()
+            compiled_for_iter.push_str(&format!(
+                "for (let {name} = {start}; {name} < {end}; {name}++) {{\n",
+                name = iterator_name.as_ref().unwrap_or(&"tempIterVar".to_string()),
+                start = first_number.as_ref().unwrap(),
+                end = second_number.as_ref().unwrap()
             ));
 
+            self.increase_indent();
             for stmt in body {
-                compiled.push_str(&self.compile_stmt(stmt)); // <- eigene compile_stmt-Funktion für Statements
-                compiled.push('\n');
+                let compiled_stmt = self.compile_stmt(stmt);
+                compiled_for_iter.push_str(&format!("{}{}\n", self.get_indent(), compiled_stmt));
             }
+            self.decrease_indent();
 
-            compiled.push('}');
+            compiled_for_iter.push_str(&format!("{}}}", self.get_indent()));
 
-            compiled
+            compiled_for_iter
         } else {
             panic!("Expected ForLoopIterated");
         }
     }
+
 
     fn compile_try_catch_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::TryCatchFinally {

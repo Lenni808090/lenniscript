@@ -32,6 +32,7 @@ pub enum TokenType {
 
     For,
     In,
+    As,
 
     While,
 
@@ -220,8 +221,7 @@ impl<'a> Lexer<'a> {
                         self.chars.next();
                         self.tokens
                             .push(Token::new_static(TokenType::DotDot, "..", line));
-                    }else {
-
+                    } else {
                         self.tokens
                             .push(Token::new_static(TokenType::Dot, ".", line));
                     }
@@ -431,6 +431,7 @@ impl<'a> Lexer<'a> {
 
             "for" => TokenType::For,
             "in" => TokenType::In,
+            "as" => TokenType::As,
 
             "try" => TokenType::Try,
             "catch" => TokenType::Catch,

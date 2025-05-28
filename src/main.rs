@@ -55,8 +55,8 @@ fn main() {
          if(x == y || x != y){
             console.log(x,y);
          }
-        
-        for(0..9){
+
+        for(0..9 as lol){
             console.log("hi");
         }
 

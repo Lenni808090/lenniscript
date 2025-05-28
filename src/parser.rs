@@ -445,6 +445,7 @@ impl Parser {
 
         let mut first_number: Option<String> = None;
         let mut second_number: Option<String> = None;
+        let mut iterator_name: Option<String> = None;
 
         let mut initializer: Option<Box<Stmt>> = None;
         let mut iterable: Option<Expr> = None;
@@ -461,6 +462,14 @@ impl Parser {
                 self.expect(TokenType::_Number, "expected second number after dot dot")
                     .value,
             );
+
+            if self.at().token_type == TokenType::As {
+                self.eat();
+                iterator_name = Some(
+                    self.expect(TokenType::Identifier, "identifier expected after as")
+                        .value,
+                );
+            }
         } else {
             initializer = if self.at().token_type != TokenType::Semicolon {
                 if self.at().token_type == TokenType::Let
@@ -553,6 +562,7 @@ impl Parser {
             Stmt::ForLoopIterated {
                 first_number,
                 second_number,
+                iterator_name,
                 body,
             }
         } else {

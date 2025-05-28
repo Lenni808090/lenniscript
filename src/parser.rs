@@ -287,8 +287,8 @@ impl Parser {
     }
 
     fn parse_var_declaration(&mut self) -> Stmt {
-        self.eat();
         let constant = self.at().token_type == TokenType::Const;
+        self.eat();
         let identifier = self
             .expect(
                 TokenType::Identifier,

@@ -3,9 +3,20 @@ use crate::js_stdlib::JsStdLib;
 use std::collections::HashMap;
 use std::fmt::format;
 use std::ptr::null;
+#[derive(Debug, Clone)]
+pub struct VarInfo {
+    var_type: Type,
+    is_const: bool,
+}
+
+impl VarInfo {
+    pub fn new(var_type: Type, is_const: bool) -> VarInfo {
+        return VarInfo { var_type, is_const };
+    }
+}
 
 pub struct TypeChecker {
-    scope_stack: Vec<HashMap<String, Type>>,
+    scope_stack: Vec<HashMap<String, VarInfo>>,
     function_signatures: HashMap<String, Vec<Type>>,
     function_return_type: HashMap<String, Type>,
     current_return_type: Option<Type>,
@@ -30,19 +41,32 @@ impl TypeChecker {
         }
     }
 
-    fn declare_variable(&mut self, name: String, var_type: Type) {
+    fn declare_variable(&mut self, name: String, var_info: VarInfo) {
         if let Some(current_scope) = self.scope_stack.last_mut() {
-            current_scope.insert(name, var_type);
+            current_scope.insert(name, var_info);
         }
     }
 
-    fn lookup_variable(&self, name: &str) -> Option<&Type> {
+    fn lookup_variable(&self, name: &str) -> Option<&VarInfo> {
         for scope in self.scope_stack.iter().rev() {
-            if let Some(var_type) = scope.get(name) {
-                return Some(var_type);
+            if let Some(var_info) = scope.get(name) {
+                return Some(var_info);
             }
         }
         None
+    }
+
+    fn check_if_const(&mut self, expr: &Expr) -> Option<bool> {
+        if let Expr::Identifier(name) = expr {
+            for scope in self.scope_stack.iter().rev() {
+                if let Some(var_info) = scope.get(name) {
+                    return Some(var_info.is_const);
+                }
+            }
+            None
+        } else {
+            panic!("Identifier needed to check for const");
+        }
     }
 
     fn matching_types(&self, target_type: &Type, value_type: &Type) -> bool {
@@ -94,8 +118,8 @@ impl TypeChecker {
         println!("\nCurrent Scope Variables:");
         println!("-----------------------");
         if let Some(current_scope) = self.scope_stack.last() {
-            for (name, var_type) in current_scope {
-                println!("{}: {:?}", name, var_type);
+            for (name, var_info) in current_scope {
+                println!("{}: {:?}", name, var_info);
             }
         }
     }
@@ -106,7 +130,8 @@ impl TypeChecker {
 
         let js_stdlib = JsStdLib::new();
         for (obj_name, methods) in &js_stdlib.objects {
-            global_scope.insert(obj_name.clone(), Type::Object(methods.clone()));
+            let var_info = VarInfo::new(Type::Object(methods.clone()), true);
+            global_scope.insert(obj_name.clone(), var_info);
         }
 
         scope_stack.push(global_scope);
@@ -130,8 +155,8 @@ impl TypeChecker {
             println!("\nVariable Types:");
             println!("---------------");
             if let Some(global_scope) = self.scope_stack.first() {
-                for (name, var_type) in global_scope {
-                    println!("{}: {:?}", name, var_type);
+                for (name, VarInfo) in global_scope {
+                    println!("{}: {:?}", name, VarInfo);
                 }
             }
         }
@@ -165,7 +190,7 @@ impl TypeChecker {
             identifier,
             value: Some(value),
             var_type,
-            ..
+            constant,
         } = stmt
         {
             let expr_type = self.infer_type(value)?;
@@ -177,12 +202,12 @@ impl TypeChecker {
             };
 
             if self.matching_types(var_type, &expr_type) {
-                self.declare_variable(identifier.clone(), final_type);
+                self.declare_variable(identifier.clone(), VarInfo::new(final_type, *constant));
                 Ok(())
             } else {
-                return Err(TypeError {
+                Err(TypeError {
                     message: format!("Expected {:?} got {:?}", var_type, &expr_type),
-                });
+                })
             }
         } else {
             panic!("Var declaration expected")
@@ -210,7 +235,7 @@ impl TypeChecker {
             self.enter_scope();
 
             for (param, param_type) in parameters.iter().zip(param_types.iter()) {
-                self.declare_variable(param.clone(), param_type.clone());
+                self.declare_variable(param.clone(), VarInfo::new(param_type.clone(), true));
             }
 
             for stmt in body {
@@ -379,7 +404,7 @@ impl TypeChecker {
 
             if let Some(iter) = iterator {
                 if let Stmt::VarDeclaration { identifier, .. } = iter.as_ref() {
-                    self.declare_variable(identifier.clone(), element_type.clone());
+                    self.declare_variable(identifier.clone(), VarInfo::new(element_type, true));
                 }
             } else {
                 panic!("iterator needed");
@@ -405,20 +430,25 @@ impl TypeChecker {
             iterator_name,
             first_number,
             ..
-        } = stmt{
+        } = stmt
+        {
+            self.enter_scope();
+
             if let Some(iter) = iterator_name {
                 self.check_statement(&Stmt::VarDeclaration {
-                    constant: false,
+                    constant: true,
                     identifier: iter.clone(),
                     value: first_number.clone(),
                     var_type: Type::Number,
                 })?;
             }
-            
+
             for stmt in body {
                 self.check_statement(stmt)?;
             }
-        
+
+            self.exit_scope();
+
             Ok(())
         } else {
             panic!("For iter loop expected ")
@@ -528,8 +558,8 @@ impl TypeChecker {
             Expr::BooleanLiteral(_) => Ok(Type::Boolean),
             Expr::NullLiteral => Ok(Type::Null),
             Expr::Identifier(name) => {
-                if let Some(var_type) = self.lookup_variable(name).cloned() {
-                    Ok(var_type)
+                if let Some(var_info) = self.lookup_variable(name) {
+                    Ok(var_info.clone().var_type)
                 } else {
                     Err(TypeError {
                         message: format!("Nicht deklarierte Variable: {}", name),
@@ -565,6 +595,11 @@ impl TypeChecker {
 
     fn check_assignment(&mut self, expr: &Expr) -> Result<(), TypeError> {
         if let Expr::Assignment { assignee, value } = expr {
+            if self.check_if_const(assignee).expect("variable not found") {
+                return Err(TypeError {
+                    message: format!("Const Variable cant be reasigned {:?}", assignee),
+                });
+            }
             let target_type = self.infer_type(assignee)?;
             let value_type = self.infer_type(value)?;
 

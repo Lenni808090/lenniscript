@@ -12,7 +12,6 @@ fn main() {
     let source = r#"
         async fn test(num1: num, num2: num) -> num {
             try {
-                num1 += 1;
                 let res = num1 + num2;
                 return res;
                 for(let i = 0; i < 10; ++i) {
@@ -30,11 +29,17 @@ fn main() {
                 console.log("clean up");
             }
         }
-         let test: string? = "hihih";
+        console.log(zahl);
+       
+        
+         const test: string? = "hihih";
          test = "hi";
          test = null;
          let x = 2;
          let y = 3;
+         
+         const testConst = 3;
+         testConst = 4;
          
          switch (y) {
             case 3 => {

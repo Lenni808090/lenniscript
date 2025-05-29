@@ -344,6 +344,11 @@ impl<'a> Lexer<'a> {
                         self.chars.next();
                         self.tokens
                             .push(Token::new_static(TokenType::BinaryOperator, "/=", line));
+                    } else if let Some(&'/') = self.chars.peek() {
+                        self.chars.next();
+                        while self.chars.peek() != Some(&'\n') {
+                            self.chars.next();
+                        }
                     } else {
                         self.tokens
                             .push(Token::new_static(TokenType::BinaryOperator, "/", line));

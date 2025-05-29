@@ -41,7 +41,7 @@ fn main() {
          let testConst = 3;
          testConst = 4;
          
-         switch (y) {
+         switch (y) {  // comment testing
             case 3 => {
                 console.log("3");
             }

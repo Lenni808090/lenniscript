@@ -30,24 +30,29 @@ fn main() {
             }
         }
         console.log(zahl);
-       
-        
+
+
          let test: string? = "hihih";
          test = "hi";
          test = null;
-         let x = 2;
-         let y = 3;
-         
-         let testConst = 3;
-         testConst = 4;
-         
-         switch (y) {  // comment testing
+
+         type UniqueNumber = num;
+         let x: UniqueNumber = 0;
+
+         fn add(first: num, secound: num) -> UniqueNumber {
+            return first + secound;
+         }
+         let y: num = 4;
+
+
+         //single line comment;
+         switch (y) {
             case 3 => {
                 console.log("3");
             }
 
             default => {
-                console.log("unknown");
+                console.log("unknown"); 
             }
          }
 
@@ -69,6 +74,7 @@ fn main() {
         let stri = {
             str: "hi"
         };
+        stri.str = "3";
         let array1: array<num> = [1,1,2,2];
         result = array1[2];
     "#;

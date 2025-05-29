@@ -11,6 +11,8 @@ pub enum TokenType {
     Let,
     Const,
 
+    TypeAlias,
+
     Async,
     Await,
 
@@ -433,6 +435,7 @@ impl<'a> Lexer<'a> {
 
             "null" => TokenType::Null,
             "string" | "num" | "array" | "bool" => TokenType::TypeAnnotation,
+            "type" => TokenType::TypeAlias,
 
             "for" => TokenType::For,
             "in" => TokenType::In,

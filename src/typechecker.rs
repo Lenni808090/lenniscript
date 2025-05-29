@@ -18,6 +18,7 @@ impl VarInfo {
 pub struct TypeChecker {
     scope_stack: Vec<HashMap<String, VarInfo>>,
     function_signatures: HashMap<String, Vec<Type>>,
+    type_alias: HashMap<String, Type>,
     function_return_type: HashMap<String, Type>,
     current_return_type: Option<Type>,
     currently_async: bool,
@@ -64,6 +65,8 @@ impl TypeChecker {
                 }
             }
             None
+        } else if let Expr::Member { .. } = expr {
+            return Some(false);
         } else {
             panic!("Identifier needed to check for const");
         }
@@ -81,6 +84,17 @@ impl TypeChecker {
         }
 
         false
+    }
+
+    fn get_type(&mut self, checked_type: &Type) -> Type {
+        if let Type::AliasedType(name) = checked_type {
+            self.type_alias
+                .get(name)
+                .expect("type does not exist")
+                .clone()
+        } else {
+            checked_type.clone()
+        }
     }
 
     fn get_method_return_type(
@@ -137,6 +151,7 @@ impl TypeChecker {
         scope_stack.push(global_scope);
         Self {
             scope_stack,
+            type_alias: HashMap::new(),
             function_signatures: HashMap::new(),
             function_return_type: HashMap::new(),
             current_return_type: None,
@@ -177,6 +192,7 @@ impl TypeChecker {
             Stmt::TryCatchFinally { .. } => self.check_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.check_switch_stmt(stmt),
             Stmt::ContinueStatement | Stmt::BreakStatement => self.check_loop_control_stmt(stmt),
+            Stmt::TypeAlias { .. } => self.check_type_alias_stmt(stmt),
             Stmt::Expression(expr) => {
                 self.infer_type(expr)?;
                 Ok(())
@@ -197,22 +213,30 @@ impl TypeChecker {
 
             let final_type = if *var_type == Type::Any {
                 expr_type.clone()
+            } else if let Type::AliasedType(name) = var_type {
+                self.type_alias
+                    .get(name)
+                    .cloned()
+                    .ok_or_else(|| TypeError {
+                        message: format!("Unknown type alias: {}", name),
+                    })?
             } else {
                 var_type.clone()
             };
 
-            if self.matching_types(var_type, &expr_type) {
+            if self.matching_types(&final_type, &expr_type) {
                 self.declare_variable(identifier.clone(), VarInfo::new(final_type, *constant));
                 Ok(())
             } else {
                 Err(TypeError {
-                    message: format!("Expected {:?} got {:?}", var_type, &expr_type),
+                    message: format!("Expected {:?}, got {:?}", final_type, expr_type),
                 })
             }
         } else {
             panic!("Var declaration expected")
         }
     }
+
     fn check_fn_declaration(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
         if let Stmt::FunctionDeclaration {
             name,
@@ -229,7 +253,7 @@ impl TypeChecker {
             self.function_signatures
                 .insert(name.clone(), param_types.clone());
 
-            self.current_return_type = Some(return_type.clone());
+            self.current_return_type = Some(self.get_type(return_type));
             self.function_return_type
                 .insert(name.clone(), return_type.clone());
             self.enter_scope();
@@ -549,6 +573,16 @@ impl TypeChecker {
         }
         self.currently_loop = false;
         Ok(())
+    }
+
+    fn check_type_alias_stmt(&mut self, stmt: &Stmt) -> Result<(), TypeError> {
+        if let Stmt::TypeAlias { name, aliased_type } = stmt {
+            self.type_alias.insert(name.clone(), aliased_type.clone());
+
+            Ok(())
+        } else {
+            panic!("type alias stmt expected");
+        }
     }
 
     fn infer_type(&mut self, expr: &Expr) -> Result<Type, TypeError> {

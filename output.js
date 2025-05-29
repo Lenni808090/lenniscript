@@ -19,10 +19,12 @@ console.log(zahl)
 let test = "hihih"
 test = "hi"
 test = null
-let x = 2
-let y = 3
-let testConst = 3
-testConst = 4
+
+let x = 0
+function add(first, secound) {
+    return (first + secound)
+}
+let y = 4
 switch(y) {
     case 3:
         console.log("3");
@@ -42,5 +44,6 @@ for (let lol = 0; lol < 9; lol++) {
 }
 let result = test(2, 4)
 let stri = {str: "hi"}
+stri.str = "3"
 let array1 = [1, 1, 2, 2, ]
 result = array1[2]

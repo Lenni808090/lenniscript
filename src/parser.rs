@@ -37,9 +37,9 @@ impl Parser {
     }
     fn get_type(&mut self) -> Type {
         let type_token_string = self
-            .expect(
-                TokenType::TypeAnnotation,
-                "Type anotation after :/-> expected",
+            .expect_multiple(
+                vec![TokenType::TypeAnnotation, TokenType::Identifier],
+                "Type annotation after :/->/= expected",
             )
             .value;
         let var_type = match type_token_string.as_str() {
@@ -84,9 +84,7 @@ impl Parser {
             "num" => Type::Number,
             "string" => Type::String,
 
-            _ => {
-                panic!("Error in get type");
-            }
+            _ => Type::AliasedType(type_token_string),
         };
 
         if self.at().token_type == TokenType::Question {
@@ -128,6 +126,18 @@ impl Parser {
         token
     }
 
+    fn expect_multiple(&mut self, expected: Vec<TokenType>, err: &str) -> Token {
+        let token = self.eat();
+        if !expected.contains(&token.token_type) {
+            eprintln!(
+                "Parser-Fehler: {}. Gefunden: {:?}, erwartet: {:?}",
+                err, token, expected
+            );
+            panic!("Parsing abgebrochen {:?}", token);
+        }
+        token
+    }
+
     pub fn produceAst(&mut self, source_code: &str) -> Stmt {
         self.tokens = tokenize(source_code);
         let mut body = Vec::new();
@@ -145,6 +155,8 @@ impl Parser {
             TokenType::Const | TokenType::Let => self.parse_var_declaration(),
 
             TokenType::Return => self.parse_return_statement(),
+
+            TokenType::TypeAlias => self.parse_type_alias_statement(),
 
             TokenType::If => self.parse_if_statement(),
 
@@ -175,6 +187,20 @@ impl Parser {
         let expr = self.parse_expr();
         self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
         Stmt::ReturnStatement { value: Some(expr) }
+    }
+
+    fn parse_type_alias_statement(&mut self) -> Stmt {
+        self.eat();
+        let name = self
+            .expect(
+                TokenType::Identifier,
+                "Identifier expected after type Keyword",
+            )
+            .value;
+        self.expect(TokenType::Equals, "Equals expected after Type Alias");
+        let aliased_type = self.get_type();
+        self.expect(TokenType::Semicolon, "Erwarte Semikolon nach Ausdruck");
+        Stmt::TypeAlias { name, aliased_type }
     }
 
     fn parse_if_statement(&mut self) -> Stmt {

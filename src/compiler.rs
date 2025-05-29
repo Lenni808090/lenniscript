@@ -53,6 +53,7 @@ impl Compiler {
             Stmt::TryCatchFinally { .. } => self.compile_try_catch_stmt(stmt),
             Stmt::SwitchStatement { .. } => self.compile_switch_stmt(stmt),
             Stmt::BreakStatement => self.compile_break_stmt(stmt),
+            Stmt::TypeAlias { .. } => String::new(),
             Stmt::ContinueStatement => self.compile_continue_stmt(stmt),
             Stmt::Expression(expr) => self.compile_expr(expr),
             _ => {
@@ -338,7 +339,6 @@ impl Compiler {
             panic!("Expected ForLoopIterated");
         }
     }
-
 
     fn compile_try_catch_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::TryCatchFinally {

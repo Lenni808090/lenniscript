@@ -11,6 +11,12 @@ pub enum Stmt {
         value: Option<Expr>,
         var_type: Type,
     },
+
+    TypeAlias {
+        name: String,
+        aliased_type: Type,
+    },
+
     FunctionDeclaration {
         name: String,
         parameters: Vec<String>,
@@ -128,6 +134,7 @@ pub enum Type {
     Option(Box<Type>),
     Null,
     Any,
+    AliasedType(String),
     Void,
 }
 #[derive(Debug)]
